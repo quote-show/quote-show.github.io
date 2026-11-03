@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>儲蓄型比較｜藝世錄報價</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/quote.css?v=2">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價</a>
+    <nav>
+      <a href="index.html">首頁</a>
+      <a href="protection.html">保障型</a>
+      <a href="savings.html">儲蓄型</a>
+      <a href="compare.html" aria-current="page">比較</a>
+    </nav>
+  </header>
+  <main class="sheet">
+    <section class="family-card">
+      <header class="family-head">
+        <div class="family-brand">
+          <span class="badge"><img src="/assets/logo.png" alt=""></span>
+          <h1>儲蓄型比較</h1>
+        </div>
+        <p class="rule" aria-hidden="true"><span></span></p>
+      </header>
+      <div class="family-body">
+        <p class="demo">示範資料，非真實費率</p>
+        <section class="panel">
+          <header><h2>並排</h2><span class="tag">〔最多三欄〕</span></header>
+          <div class="grid" id="slots"></div>
+          <p><button class="gold" id="run" type="button">比較</button></p>
+          <p class="error" id="error" hidden></p>
+        </section>
+        <section class="panel" id="out" hidden>
+          <header><h2>摘要</h2><span class="tag">〔第 10 年或最後一年〕</span></header>
+          <div class="scroll"><table>
+            <thead><tr><th></th><th id="h0"></th><th id="h1"></th><th id="h2"></th></tr></thead>
+            <tbody id="body"></tbody>
+          </table></div>
+        </section>
+      </div>
+      <footer class="foot">
+        <span>個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準</span>
+        <strong data-version>DEMO-0</strong>
+      </footer>
+    </section>
+  </main>
+  <script type="module" src="js/app-compare.js"></script>
+</body>
+</html>

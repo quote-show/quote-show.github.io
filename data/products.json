@@ -1,0 +1,32 @@
+{
+  "version": "DEMO-0",
+  "updated": "2026-11-03",
+  "products": [
+    {
+      "code": "DEMO-P",
+      "name": "示範終身保障",
+      "type": "protection",
+      "currency": "TWD",
+      "status": "demo",
+      "file": "protection/DEMO-P.json"
+    },
+    {
+      "code": "DEMO-D",
+      "name": "示範分紅終身",
+      "type": "savings",
+      "kind": "dividend",
+      "currency": "TWD",
+      "status": "demo",
+      "file": "savings/DEMO-D.json"
+    },
+    {
+      "code": "DEMO-I",
+      "name": "示範利變終身",
+      "type": "savings",
+      "kind": "interest-sensitive",
+      "currency": "USD",
+      "status": "demo",
+      "file": "savings/DEMO-I.json"
+    }
+  ]
+}

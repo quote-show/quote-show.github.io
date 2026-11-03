@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>儲蓄型試算｜藝世錄報價</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/quote.css?v=2">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價</a>
+    <nav>
+      <a href="index.html">首頁</a>
+      <a href="protection.html">保障型</a>
+      <a href="savings.html" aria-current="page">儲蓄型</a>
+      <a href="compare.html">比較</a>
+    </nav>
+  </header>
+  <main class="sheet">
+    <section class="family-card">
+      <header class="family-head">
+        <div class="family-brand">
+          <span class="badge"><img src="/assets/logo.png" alt=""></span>
+          <h1 id="pageTitle">儲蓄型試算</h1>
+        </div>
+        <p class="rule" aria-hidden="true"><span></span></p>
+      </header>
+      <div class="family-body">
+        <p class="demo">示範資料，非真實費率</p>
+        <section class="panel">
+          <header><h2>條件</h2><span class="tag" id="codeTag">〔代號〕</span></header>
+          <div class="grid">
+            <div>
+              <label for="product">商品</label>
+              <select id="product"></select>
+            </div>
+            <div class="two">
+              <div>
+                <label for="age">年齡</label>
+                <input id="age" type="number" min="0" max="80" value="30">
+              </div>
+              <div>
+                <label for="sex">性別</label>
+                <select id="sex"><option value="1">男</option><option value="2">女</option></select>
+              </div>
+            </div>
+            <div class="two">
+              <div>
+                <label for="term">年期</label>
+                <select id="term"></select>
+              </div>
+              <div>
+                <label for="sum">保額</label>
+                <input id="sum" type="number" value="100000">
+              </div>
+            </div>
+            <div id="scenarioBox">
+              <label for="scenario">紅利情境</label>
+              <select id="scenario"><option value="mid">中</option><option value="low">低</option></select>
+            </div>
+            <div id="declaredBox" hidden>
+              <label for="declared">宣告利率（小數，例如 0.03）</label>
+              <input id="declared" type="number" step="0.001" value="0.03">
+            </div>
+          </div>
+          <p><button class="gold" id="calc" type="button">算出逐年表</button></p>
+          <p class="error" id="error" hidden></p>
+        </section>
+        <section class="panel" id="summary" hidden>
+          <header><h2>結果</h2><span class="tag" id="summaryTag"></span></header>
+          <p id="headline"></p>
+        </section>
+        <section class="panel" id="tableWrap" hidden>
+          <header><h2>逐年</h2><span class="tag">〔每列一年〕</span></header>
+          <div class="scroll"><table>
+            <thead><tr><th>年度</th><th>保費</th><th>累計</th><th>解約金</th><th>身故</th><th>倍數</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table></div>
+        </section>
+      </div>
+      <footer class="foot">
+        <span>個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準</span>
+        <strong data-version>DEMO-0</strong>
+      </footer>
+    </section>
+  </main>
+  <script type="module" src="js/app-savings.js"></script>
+</body>
+</html>
