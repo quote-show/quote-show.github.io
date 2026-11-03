@@ -51,8 +51,9 @@
     </section>
   </main>
   <script type="module">
-    import { fillVersion, loadJson } from "./js/ui.js";
+    import { fillVersion, loadJson, watchTables } from "./js/ui.js";
     fillVersion(await loadJson("data/products.json"));
+    watchTables();
   </script>
 </body>
 </html>

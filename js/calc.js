@@ -433,7 +433,7 @@ function rawPremium(product, sum, rate) {
   return roundHalfUp(sum * rate);
 }
 
-function sheetIrr(rows, horizon, monthly) {
+export function sheetIrr(rows, horizon, monthly) {
   const periods = monthly ? 12 : 1;
   const flows = [];
   for (let i = 0; i < horizon; i += 1) {
@@ -540,6 +540,10 @@ function projectStandard(product, input, id, mode, first, renewal) {
       cum: previous + premium,
       W: death + addedDeath + terminalDeath + held,
       X: cash + addedCash + terminalCash + held,
+      b: cash,
+      e: terminalCash,
+      y: addedCash,
+      c: held,
       surv: baseSurvival + addedSurvival,
       cash: mode === "CASH" ? dividend : 0,
       K: dividend,
@@ -584,6 +588,10 @@ function projectHand(product, input, id, first, renewal) {
       cum: previous + premium,
       W: death + addedDeath + terminalDeath,
       X: cash + addedCash + terminalCash,
+      b: cash,
+      e: terminalCash,
+      y: addedCash,
+      c: 0,
       surv: 0,
       cash: 0,
       K: dividend,
@@ -739,6 +747,10 @@ function projectInterest(product, input, id, mode, first, renewal) {
       cum: previous + premium,
       W: death + addedDeath + account + cashOut,
       X: cash + addedCash + account + cashOut,
+      b: cash,
+      e: 0,
+      y: addedCash,
+      c: account + cashOut,
       surv: baseSurvival + addedSurvival,
       cash: cashOut,
       K: share,
@@ -890,6 +902,10 @@ export function quoteFbo(product, input) {
       cum: previous + premium,
       W: baseDeath + deathAdd + store,
       X: baseCash + cashAdd + store,
+      b: baseCash,
+      e: 0,
+      y: cashAdd,
+      c: store,
       surv: 0,
       cash: 0,
       K: feedback,
@@ -1027,6 +1043,10 @@ function projectReduced(product, input, id, yearN, reduced, continued) {
       cum,
       W: death + addedDeath + terminalDeath,
       X: cash + addedCash + terminalCash,
+      b: cash,
+      e: terminalCash,
+      y: addedCash,
+      c: 0,
       surv: baseSurvival + addedSurvival,
       cash: 0,
       K: dividend,
@@ -1066,7 +1086,7 @@ export function quoteRpu(product, input) {
       const py = converted ? 0 : row.py;
       cum += py;
       const scaled = (value) => Math.round((value || 0) * factor);
-      return { ...row, py, cum, W: scaled(row.W), X: scaled(row.X), surv: scaled(row.surv), cash: scaled(row.cash), K: scaled(row.K), base: converted ? reducedSum : sum * 1e4 };
+      return { ...row, py, cum, W: scaled(row.W), X: scaled(row.X), b: scaled(row.b), e: scaled(row.e), y: scaled(row.y), c: scaled(row.c), surv: scaled(row.surv), cash: scaled(row.cash), K: scaled(row.K), base: converted ? reducedSum : sum * 1e4 };
     });
   } else if (product.isr || product.calc === "fbo") {
     rows = quoteProduct(product, { ...plain, rpu: { n: year, Sp: reducedSum } }).rows;

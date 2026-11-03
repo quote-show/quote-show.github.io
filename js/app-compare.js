@@ -1,5 +1,5 @@
 import { preferredSavingsMode, quoteProduct, savingsModes } from "./calc.js";
-import { fillVersion, loadJson, money, percent } from "./ui.js";
+import { fillVersion, loadJson, money, percent, watchTables } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
@@ -54,8 +54,10 @@ document.querySelector("#run").addEventListener("click", async () => {
       <tr><td>含領回報酬率</td>${results.map((item) => `<td>${percent(item.result.irr10)}</td>`).join("")}${"<td></td>".repeat(3 - results.length)}</tr>
       <tr><td>壽險倍數</td>${results.map((item) => `<td>${item.row.cum ? (item.row.W / item.row.cum).toFixed(2) : "—"}</td>`).join("")}${"<td></td>".repeat(3 - results.length)}</tr>`;
     document.querySelector("#out").hidden = false;
+    watchTables();
   } catch (reason) {
     error.hidden = false;
     error.textContent = reason.message;
   }
 });
+watchTables();

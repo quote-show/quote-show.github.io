@@ -24,6 +24,33 @@ export function sexName(sex) {
   return Number(sex) === 2 ? "女" : "男";
 }
 
+export function isKeyYear(row) {
+  return row.t <= 10 || row.t % 5 === 0 || row.age % 10 === 0;
+}
+
+export function watchTables() {
+  const bind = (node) => {
+    if (node.dataset.swipe) return;
+    node.dataset.swipe = "1";
+    const hint = document.createElement("p");
+    hint.className = "swipe-hint";
+    hint.textContent = "左右滑動看更多欄";
+    hint.hidden = true;
+    node.before(hint);
+    const update = () => {
+      const overflow = node.scrollWidth > node.clientWidth + 8;
+      const started = node.scrollLeft > 8;
+      hint.hidden = !overflow || started;
+      node.classList.toggle("can-swipe", overflow && !started);
+    };
+    node.addEventListener("scroll", update, { passive: true });
+    requestAnimationFrame(update);
+  };
+  const scan = () => document.querySelectorAll(".scroll").forEach(bind);
+  scan();
+  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+}
+
 export function fillVersion(catalog) {
   document.querySelectorAll("[data-version]").forEach((node) => {
     node.textContent = `${catalog.version} · ${catalog.updated}`;

@@ -118,6 +118,7 @@
           <header><h2>減額繳清</h2><span class="tag">〔與繼續繳並排〕</span></header>
           <label for="rpuYear">於第幾年末改為減額繳清</label>
           <select id="rpuYear"></select>
+          <label class="choices"><input id="rpuKey" type="checkbox" checked> 只顯示重點年度</label>
           <div id="rpuOut"></div>
         </section>
         <section class="panel" id="drawBox" hidden>
@@ -132,8 +133,13 @@
           <div id="drawOut"></div>
         </section>
         <section class="panel" id="tableWrap" hidden>
-          <header><h2>逐年</h2><span class="tag">〔每列一年〕</span></header>
-          <div class="scroll"><table>
+          <header><h2>逐年</h2><span class="tag">〔試算〕</span></header>
+          <label class="choices"><input id="keyYears" type="checkbox"> 只顯示重點年度（1～10、15、20、25、30…及每 10 歲）</label>
+          <label class="choices" id="partsLabel"><input id="showParts" type="checkbox"> 展開解約總額明細</label>
+          <p id="partsNote" hidden></p>
+          <label for="jumpYear">跳到年度</label>
+          <select id="jumpYear"></select>
+          <div class="scroll" id="yearScroll"><table id="yearTable">
             <thead id="tableHead"><tr><th>年度</th><th>保費</th><th>累計</th><th>解約金</th><th>身故</th><th>倍數</th></tr></thead>
             <tbody id="rows"></tbody>
           </table></div>

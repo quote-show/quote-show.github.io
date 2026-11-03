@@ -1,7 +1,7 @@
 import { listRiders, modeName, quoteBundle } from "./bundle.js";
 import { quoteProduct, sumLimits } from "./calc.js";
 import { insuranceAge } from "./engine.js";
-import { fillVersion, loadJson, money } from "./ui.js";
+import { fillVersion, loadJson, money, watchTables } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
@@ -494,4 +494,5 @@ for (const id of ["age", "occ", "parentAge", "lifeEx", "spec", "term", "plan", "
   });
 }
 document.querySelectorAll('input[name="sex"]').forEach((node) => node.addEventListener("change", render));
+watchTables();
 render();

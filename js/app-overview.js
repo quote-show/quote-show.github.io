@@ -1,5 +1,5 @@
 import { buildOverview } from "./overview.js";
-import { fillVersion, loadJson, money } from "./ui.js";
+import { fillVersion, loadJson, money, watchTables } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
@@ -62,4 +62,5 @@ if (!raw.length) {
     ${details}
     <p class="sub">給付金額依各商品條款或費率表，按這次選的保額、日額換算。同一事故通常擇一或依條款扣除已領金額，不是把每一列相加。實際給付以保單條款為準。</p>`;
   document.querySelector("#print").addEventListener("click", () => window.print());
+  watchTables();
 }
