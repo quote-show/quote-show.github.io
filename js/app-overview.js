@@ -10,7 +10,7 @@ let raw = [];
 try { raw = JSON.parse(params.get("bundle") || "[]"); } catch { raw = []; }
 const body = document.querySelector("#body");
 if (!raw.length) {
-  body.innerHTML = `<p>還沒有組合。<a href="bundle.html">回組合估價</a></p>`;
+  body.innerHTML = `<p>還沒有組合。<a href="protection.html">回保障型</a></p>`;
 } else {
   const explains = {};
   const products = {};
@@ -54,7 +54,7 @@ if (!raw.length) {
       <p class="money">首年實繳合計 ${money(view.premium, "TWD")}</p>
       <p class="sub">約每月 ${money(Math.round(view.premium / 12), "TWD")}</p>
       <div class="chips">${chips}</div>
-      <p class="noprint"><a href="bundle.html">回組合修改</a> · <button type="button" class="ghost" id="print">列印</button></p>
+      <p class="noprint"><a href="protection.html">回保障型修改</a> · <button type="button" class="ghost" id="print">列印</button></p>
     </section>
     <h2>保障總覽</h2>
     ${groups}

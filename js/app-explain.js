@@ -26,7 +26,7 @@ if (!code) {
     const sources = (item.sources || []).map((line) => `<li>${line}</li>`).join("");
     body.innerHTML = `
       <p>${item.tagline || ""}</p>
-      <p class="tag">${item.example || ""} · <a href="bundle.html">回組合估價</a> · <a href="protection.html?code=${item.code}">單項試算</a></p>
+      <p class="tag">${item.example || ""} · <a href="protection.html?code=${item.code}">回保障型試算</a></p>
       ${points ? `<section class="panel"><header><h2>重點</h2></header><ul>${points}</ul></section>` : ""}
       ${cards}
       ${sources ? `<section class="panel"><header><h2>出處</h2></header><ul>${sources}</ul></section>` : ""}`;

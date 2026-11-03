@@ -4,154 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>主約＋附約｜藝世錄報價工具</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/quote.css?v=2">
+  <title>保障型｜藝世錄報價工具</title>
+  <link rel="canonical" href="protection.html">
+  <meta http-equiv="refresh" content="0; url=protection.html">
+  <script>
+    var next = "protection.html" + location.search + location.hash;
+    var meta = document.querySelector('meta[http-equiv="refresh"]');
+    if (meta) meta.content = "0; url=" + next;
+    location.replace(next);
+  </script>
 </head>
-<body class="has-cart">
-  <style>
-    body.has-cart { padding-bottom: 108px; }
-    .hint { color: var(--faint); font-size: 0.82rem; white-space: normal; }
-    .catbar { margin: 12px 0 4px; padding-left: 8px; border-left: 3px solid var(--gold); font-family: var(--serif); color: var(--gold-ink); }
-    .rider { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin: 6px 0; }
-    .rider.on { border-color: var(--gold); background: var(--card); }
-    .pick { display: flex; gap: 8px; align-items: flex-start; }
-    .pick input { width: 22px; height: 22px; min-height: 0; margin-top: 3px; flex: none; }
-    .pick b { margin-right: 4px; }
-    .pick small, .why { display: block; color: var(--faint); font-size: 0.78rem; font-weight: 400; white-space: normal; }
-    .rider-ctl { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
-    .rider-ctl input, .rider-ctl select { width: 108px; flex: none; min-height: 40px; }
-    .prem { margin-left: auto; max-width: 48%; text-align: right; font-weight: 700; font-size: 0.82rem; color: var(--gold-ink); }
-    #rnolist { margin-top: 8px; }
-    #rnolist summary { cursor: pointer; color: var(--gold-ink); }
-    #rnl p { margin: 8px 0; font-size: 0.86rem; }
-    .cart { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--card); border-top: 1px solid var(--line-mid); box-shadow: 0 -2px 12px rgba(80, 60, 30, 0.12); }
-    .cartbar { display: flex; align-items: center; gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
-    .cartbar .sum { flex: 1; min-width: 0; font-size: 0.78rem; line-height: 1.35; }
-    .cartbar .sum b { display: block; font-size: 1.02rem; color: var(--gold-ink); }
-    .cartbar .gold, .cartbar .ghost { flex: none; min-height: 36px; padding: 0 10px; font-size: 0.82rem; }
-    .cartbody { max-height: 46vh; overflow: auto; padding: 0 10px 12px; }
-    .cartbody th, .cartbody td { font-size: 0.72rem; }
-    .cartbody th:nth-child(n+2), .cartbody td:nth-child(n+2) { white-space: nowrap; }
-    @media print { .cart, body.has-cart { position: static; padding-bottom: 0; box-shadow: none; } }
-  </style>
-  <header class="top">
-    <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價工具</a>
-    <nav>
-      <a href="index.html">首頁</a>
-      <a href="protection.html">保障型</a>
-      <a href="bundle.html" aria-current="page">組合</a>
-      <a href="savings.html">儲蓄型</a>
-      <a href="compare.html">比較</a>
-    </nav>
-  </header>
-  <main class="sheet">
-    <section class="family-card">
-      <header class="family-head">
-        <div class="family-brand">
-          <span class="badge"><img src="/assets/logo.png" alt=""></span>
-          <h1>主約＋附約</h1>
-        </div>
-        <p class="rule" aria-hidden="true"><span></span></p>
-      </header>
-      <div class="family-body">
-        <p class="tag"><a href="waiver.html">豁免附約比較</a></p>
-        <section class="panel">
-          <header><h2>被保險人</h2><span class="tag" id="ageTag">〔保險年齡〕</span></header>
-          <div class="grid">
-            <div>
-              <label for="birth">生日</label>
-              <input id="birth" type="date" value="1996-01-15">
-            </div>
-            <div>
-              <label for="age">保險年齡</label>
-              <input id="age" type="number" min="0" max="90" value="30">
-            </div>
-            <div class="choices">
-              <label><input type="radio" name="sex" value="1" checked>男</label>
-              <label><input type="radio" name="sex" value="2">女</label>
-            </div>
-            <div>
-              <label for="occ">職業類別</label>
-              <select id="occ"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
-            </div>
-            <div class="two">
-              <div>
-                <label for="parentAge">要保人年齡</label>
-                <input id="parentAge" type="number" min="0" max="99" placeholder="親子型豁免">
-              </div>
-              <div>
-                <label for="lifeEx">既有壽險（萬）</label>
-                <input id="lifeEx" type="number" min="0" value="0">
-              </div>
-            </div>
-            <div>
-              <label for="spec">特定身分</label>
-              <select id="spec">
-                <option value="">無</option>
-                <option value="kid">孩童／學生</option>
-                <option value="home">家管／退休／無業／待業</option>
-              </select>
-            </div>
-          </div>
-        </section>
-        <section class="panel">
-          <header><h2>主約</h2><span class="tag" id="mainLink"></span></header>
-          <div class="grid">
-            <div>
-              <label for="main">商品</label>
-              <select id="main"></select>
-            </div>
-            <div class="two">
-              <div>
-                <label for="term">年期</label>
-                <select id="term"></select>
-              </div>
-              <div>
-                <label for="sum">保額</label>
-                <input id="sum" type="number" value="100">
-              </div>
-            </div>
-            <div>
-              <label for="mode">繳別</label>
-              <select id="mode">
-                <option value="annual">年繳</option>
-                <option value="semi">半年繳</option>
-                <option value="quarterly">季繳</option>
-                <option value="monthly">月繳</option>
-              </select>
-            </div>
-            <label class="choices"><input id="payDisc" type="checkbox" checked> 計入繳費方式折扣</label>
-          </div>
-        </section>
-        <section class="panel">
-          <header><h2>附約與豁免</h2><span class="tag" id="riderCount"></span></header>
-          <p class="hint" id="rhint"></p>
-          <div id="rlist"></div>
-          <details id="rnolist">
-            <summary>此條件不可投保的附約 <span id="rnolistcnt"></span></summary>
-            <div id="rnl"></div>
-          </details>
-        </section>
-        <p class="error" id="error" hidden></p>
-        <p class="hint" id="rules"></p>
-      </div>
-      <footer class="foot">
-        <span>個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準</span>
-        <strong data-version>DEMO-0</strong>
-      </footer>
-    </section>
-  </main>
-  <div id="cart" class="cart">
-    <div class="cartbar">
-      <div class="sum" id="cartsum">尚未計算</div>
-      <a class="gold" id="overview" href="overview.html">保障總覽</a>
-      <button type="button" class="ghost" id="cartopen" aria-expanded="false">明細 ▲</button>
-    </div>
-    <div class="cartbody" id="cartbody" hidden></div>
-  </div>
-  <script type="module" src="js/app-bundle.js"></script>
+<body>
+  <p>保障型試算已併到 <a id="go" href="protection.html">保障型</a>。</p>
+  <script>
+    var link = document.querySelector("#go");
+    if (link) link.href = "protection.html" + location.search + location.hash;
+  </script>
 </body>
 </html>
