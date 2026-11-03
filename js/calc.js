@@ -359,11 +359,17 @@ export function quoteBand(product, input) {
   const plan = input.plan || product.plans?.[0]?.name;
   const band = (product.issueAges?.plans || []).find((item) => item.name === plan);
   if (band && (age < band.min || age > band.max)) throw new Error(`這個計畫的投保年齡是 ${band.min}–${band.max} 歲`);
+  if (product.occupation) assertOccupation(product, occ);
+  if (product.sex) assertSex(product, sex);
   const specific = product.premiums?.[`${plan}|${age}|${sex}|${occ}`];
   const shared = product.premiums?.[`${plan}|${age}|${sex}`];
   const value = specific ?? shared;
   if (value == null) throw new Error("這個年齡、性別或職業沒有印好的保費");
-  return { currency: "TWD", annual: value, modal: value, payable: value, rate: value, discount: 0 };
+  if (product.modeFactors) {
+    const priced = applyModal(value, modeFactor(product, input.mode || "annual"), 0);
+    return { currency: product.currency || "TWD", annual: value, modal: priced.modal, payable: priced.payable, rate: value, discount: 0 };
+  }
+  return { currency: product.currency || "TWD", annual: value, modal: value, payable: value, rate: value, discount: 0 };
 }
 
 function tableId(term, sex, age) {
@@ -371,6 +377,7 @@ function tableId(term, sex, age) {
 }
 
 export function savingsModes(product, id) {
+  if (product.calc === "fbo" || product.calc === "annuity") return product.modes || ["PS"];
   const tables = product.tables || {};
   if (product.isr) return product.isrModes || ["PS", "PC", "PUA"];
   if (product.hand) return ["PUA"];
@@ -382,6 +389,7 @@ export function savingsModes(product, id) {
 }
 
 export function preferredSavingsMode(product, modes) {
+  if (product.defaultMode && modes.includes(product.defaultMode)) return product.defaultMode;
   const cash = product.isr ? "PC" : "CASH";
   const prefer = product.srv ? (modes.includes(cash) ? cash : "PUA") : "PUA";
   return modes.includes(prefer) ? prefer : modes[0];
@@ -759,7 +767,182 @@ export function quoteSavings(product, input) {
   return result;
 }
 
+function excelRound(value, digits) {
+  const scale = 10 ** digits;
+  return Math.floor(Math.abs(value) * scale + 0.5) / scale * Math.sign(value || 1);
+}
+
+function up10(value) {
+  return Math.ceil(Math.round(value * 1e13) / 1e3 - 1e-8) / 1e10;
+}
+
+function r3(value) {
+  return Math.floor(value * 1000 + 0.5) / 1000;
+}
+
+function r10(value) {
+  return Math.floor(value * 1e10 + 0.5) / 1e10;
+}
+
+function roundDownPlaces(value, places) {
+  const scale = 10 ** places;
+  return Math.floor(value * scale + 1e-8) / scale;
+}
+
+function daysInMonth(year, month) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function quoteFbo(product, input) {
+  const age = Number(input.age);
+  const sex = Number(input.sex);
+  const term = Number(input.term);
+  const sum = Number(input.sum);
+  const declared = Number(input.declaredRate ?? product.declDefault);
+  const mode = product.modes?.includes(input.mode) ? input.mode : (product.defaultMode || "PS");
+  assertAgeTerm(product, age, term);
+  assertSex(product, sex);
+  const limits = product.sumInsured || {};
+  const cap = limits.byAge?.[String(age)] ?? limits.max;
+  if (!(sum >= limits.min && sum <= cap)) throw new Error(`保額要在 ${limits.min}–${cap} 萬`);
+  const id = tableId(term, sex, age);
+  const tables = product.tables;
+  if (tables.gp?.[id] == null || tables.pv?.[id] == null) throw new Error("查無這個年齡的費率");
+  const pricing = Number(product.pricing[String(term)]);
+  const diff = Math.max(0, excelRound(excelRound(Math.max(declared, pricing), 4) - pricing, 5));
+  const [d1, d2] = handDiscount(product.handDiscount, term, sum, input.method1 || product.method1, input.method2 || product.method2);
+  const raw = excelRound(sum * tables.gp[id], 1);
+  const modal = Math.floor(raw + 1e-9);
+  const first = Math.round(modal * (1 - d1));
+  const renewal = Math.round(modal * (1 - d2));
+  const cv = tables.cv[id];
+  const die = tables.die[id];
+  const die2 = tables.die2[id];
+  const pv = tables.pv[id];
+  const pvfb = tables.pvfb[id];
+  const pvfb0 = tables.pvfb0?.[id] || pvfb;
+  const years = product.maxAge - age + 1;
+  const lock = mode === "PUA" ? years : Math.max(product.lockAge - age, product.lockYears);
+  const anchor = (product.policyMonth || "2026-10-01").split("-").map(Number);
+  let paid = 0;
+  let box = 0;
+  let fraction = 0;
+  let balance = 0;
+  const history = [];
+  const rows = [];
+  for (let year = 1; year <= years; year += 1) {
+    const part = up10(pv[year - 1] * sum * diff);
+    const extra = year === 1 ? 0 : up10(r3(paid / 1e4 * pvfb[year]) * diff);
+    const feedback = year === 1 ? Math.ceil(part - 1e-9) : Math.ceil(part - 1e-9) + Math.ceil(extra - 1e-9);
+    if (year <= lock && pvfb[year]) paid += Math.floor(feedback / (pvfb[year] / 1e4) + 0.5);
+    const deathAdd = Math.ceil(die2[year - 1] * paid / 1e4 - 1e-9);
+    const cashAdd = Math.ceil(r3(paid / 1e4 * pvfb0[year]) - 1e-9);
+    const baseDeath = Math.ceil(die[year - 1] * sum - 1e-9);
+    const baseCash = Math.ceil(cv[year - 1] * sum - 1e-9);
+    let booked = 0;
+    for (let month = 0; month < 12; month += 1) {
+      const index = (year - 1) * 12 + month;
+      const monthIndex = anchor[1] - 1 + index;
+      const yearNumber = anchor[0] + Math.floor(monthIndex / 12);
+      const monthNumber = monthIndex % 12 + 1;
+      const rate = r10(declared * daysInMonth(yearNumber, monthNumber) / 365);
+      const incoming = month === 11 && year > lock && mode === "PS" ? part + extra : 0;
+      const raw = box + fraction + incoming;
+      const digits = Math.abs(raw) >= 1 ? String(Math.floor(Math.abs(raw))).length : 1;
+      box = roundDownPlaces(raw, digits <= 5 ? 10 : Math.max(0, 15 - digits));
+      if (month === 11 && year > lock && mode === "PS") booked = Math.ceil((history.slice(-12).reduce((sum, item) => sum + item, 0)) - 1e-9);
+      fraction = r10(box * rate);
+      history.push(fraction);
+    }
+    if (year > lock && mode === "PS") balance += feedback + booked;
+    const store = mode === "PS" ? balance : 0;
+    const previous = rows.length ? rows[rows.length - 1].cum : 0;
+    const premium = year <= term ? (year === 1 ? first : renewal) : 0;
+    rows.push({
+      t: year,
+      age: age + year - 1,
+      py: premium,
+      cum: previous + premium,
+      W: baseDeath + deathAdd + store,
+      X: baseCash + cashAdd + store,
+      surv: 0,
+      cash: 0,
+      K: feedback,
+      N: paid,
+      store,
+    });
+  }
+  const result = finishSavings(product, modal, first, renewal, d1, d2, tables.gp[id], rows);
+  result.mode = mode;
+  result.declaredRate = declared;
+  result.feedback1 = rows[0].K;
+  result.store7 = rows[6]?.store ?? null;
+  result.store10 = rows[9]?.store ?? null;
+  return result;
+}
+
+export function quoteAnnuity(product, input) {
+  const age = Number(input.age);
+  const sex = Number(input.sex);
+  const term = input.term ?? 1;
+  const premium = Number(input.sum);
+  const declared = Number(input.declaredRate ?? product.declDefault);
+  assertAgeTerm(product, age, term);
+  assertSex(product, sex);
+  const limits = product.sumInsured || {};
+  if (!(premium >= limits.min && premium <= limits.max)) throw new Error(`躉繳保費要在 ${limits.min}–${limits.max}`);
+  const factor = product.factors?.[`${age}|${sex}|M`];
+  if (factor == null) throw new Error("查無這個年齡的年金因子");
+  const charge = excelRound(premium * product.loading, product.loadDigits);
+  const net = premium - charge;
+  const adjust = excelRound(((1 + declared) / (1 + product.pricingRate)) ** (1 / 12), 7);
+  let pay = excelRound(net / factor * adjust, 2);
+  const years = product.payYears || Math.max(1, product.maxAge - age + 1);
+  const rows = [];
+  let running = 0;
+  for (let year = 1; year <= years; year += 1) {
+    let annuity = 0;
+    for (let month = 0; month < 12; month += 1) {
+      const shown = excelRound(pay, product.showDigits);
+      annuity = excelRound(annuity + shown, product.showDigits);
+      pay = excelRound(pay * adjust, 2);
+    }
+    running = excelRound(running + annuity, product.showDigits);
+    const previous = rows.length ? rows[rows.length - 1].cum : 0;
+    rows.push({
+      t: year,
+      age: age + year - 1,
+      py: year === 1 ? premium : 0,
+      cum: previous + (year === 1 ? premium : 0),
+      W: 0,
+      X: 0,
+      surv: annuity,
+      cash: 0,
+      K: 0,
+    });
+  }
+  const bare = rows.map((row) => ({ ...row }));
+  const result = finishSavings(product, premium, premium, 0, 0, 0, factor, bare);
+  let total = 0;
+  result.rows.forEach((row) => {
+    total = excelRound(total + row.surv, product.showDigits);
+    row.X = total;
+  });
+  result.firstPayment = excelRound(excelRound(net / factor * adjust, 2), product.showDigits);
+  result.month2 = (() => {
+    const first = excelRound(net / factor * adjust, 2);
+    return excelRound(excelRound(first * adjust, 2), product.showDigits);
+  })();
+  result.declaredRate = declared;
+  result.loadingAmount = charge;
+  result.net = net;
+  result.mode = "M";
+  return result;
+}
+
 export function quoteProduct(product, input) {
+  if (product.calc === "fbo") return quoteFbo(product, input);
+  if (product.calc === "annuity") return quoteAnnuity(product, input);
   if (product.calc === "savings") return quoteSavings(product, input);
   if (product.calc === "band") return quoteBand(product, input);
   if (product.calc === "rider" || product.calc === "plan" || product.calc === "tmr" || product.calc === "waiver") {

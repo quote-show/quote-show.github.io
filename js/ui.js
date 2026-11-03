@@ -1,8 +1,11 @@
 export const FOOT = "個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準";
 
 export function money(value, currency) {
-  const n = Math.round(Number(value) || 0);
-  const body = n.toLocaleString("zh-Hant");
+  const n = Number(value) || 0;
+  const whole = Math.round(n);
+  const body = Math.abs(n - whole) < 1e-6
+    ? whole.toLocaleString("zh-Hant")
+    : n.toLocaleString("zh-Hant", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return currency === "USD" ? `USD ${body}` : `NT$ ${body}`;
 }
 

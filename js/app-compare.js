@@ -47,9 +47,10 @@ document.querySelector("#run").addEventListener("click", async () => {
     [0, 1, 2].forEach((index) => {
       document.querySelector(`#h${index}`).textContent = results[index] ? results[index].item.name : "";
     });
+    const valueLabel = results.every((item) => item.item.calc === "annuity") ? "第10年累計年金" : results.some((item) => item.item.calc === "annuity") ? "第10年價值" : "第10年解約";
     document.querySelector("#body").innerHTML = `
       <tr><td>首期</td>${results.map((item) => `<td>${money(item.result.payable, item.item.currency)}</td>`).join("")}${"<td></td>".repeat(3 - results.length)}</tr>
-      <tr><td>第10年解約</td>${results.map((item) => `<td>${money(item.row.X, item.item.currency)}</td>`).join("")}${"<td></td>".repeat(3 - results.length)}</tr>
+      <tr><td>${valueLabel}</td>${results.map((item) => `<td>${money(item.row.X, item.item.currency)}</td>`).join("")}${"<td></td>".repeat(3 - results.length)}</tr>
       <tr><td>含領回報酬率</td>${results.map((item) => `<td>${percent(item.result.irr10)}</td>`).join("")}${"<td></td>".repeat(3 - results.length)}</tr>
       <tr><td>壽險倍數</td>${results.map((item) => `<td>${item.row.cum ? (item.row.W / item.row.cum).toFixed(2) : "—"}</td>`).join("")}${"<td></td>".repeat(3 - results.length)}</tr>`;
     document.querySelector("#out").hidden = false;

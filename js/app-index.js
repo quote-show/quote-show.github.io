@@ -11,5 +11,6 @@ list.innerHTML = catalog.products.map((item) => {
     : `savings.html?code=${encodeURIComponent(item.code)}`;
   const kind = item.kind ? ` · ${kindName[item.kind] || item.kind}` : "";
   const role = item.role ? `${roleName[item.role] || item.role} · ` : "";
-  return `<a class="entry" href="${href}"><h2>${item.name}</h2><p>${role}${kindName[item.type] || ""}${kind} · ${item.currency} · ${item.code}</p></a>`;
+  const stopped = item.status === "stopped" ? " · 停售" : "";
+  return `<a class="entry" href="${href}"><h2>${item.name}</h2><p>${role}${kindName[item.type] || ""}${kind} · ${item.currency} · ${item.code}${stopped}</p></a>`;
 }).join("");

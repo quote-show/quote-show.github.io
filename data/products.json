@@ -1686,6 +1686,70 @@
       "currency": "TWD",
       "status": "active",
       "file": "savings/XMP.json"
+    },
+    {
+      "code": "FBO",
+      "name": "富邦人壽美利大運外幣利率變動型終身壽險",
+      "type": "savings",
+      "kind": "interest-sensitive",
+      "currency": "USD",
+      "status": "active",
+      "file": "savings/FBO.json"
+    },
+    {
+      "code": "SAZ",
+      "name": "富邦人壽享美鑫外幣利率變動型即期年金保險（乙型）",
+      "type": "savings",
+      "kind": "interest-sensitive",
+      "currency": "USD",
+      "status": "active",
+      "file": "savings/SAZ.json"
+    },
+    {
+      "code": "SBA",
+      "name": "富邦人壽鑫樂悠利率變動型即期年金保險（乙型）",
+      "type": "savings",
+      "kind": "interest-sensitive",
+      "currency": "TWD",
+      "status": "active",
+      "file": "savings/SBA.json"
+    },
+    {
+      "code": "SBC1",
+      "name": "富邦人壽鑫享外幣利率變動型即期年金保險（乙型，15 年保證）",
+      "type": "savings",
+      "kind": "interest-sensitive",
+      "currency": "USD",
+      "status": "active",
+      "file": "savings/SBC1.json"
+    },
+    {
+      "code": "SBC2",
+      "name": "富邦人壽鑫享外幣利率變動型即期年金保險（乙型，20 年保證）",
+      "type": "savings",
+      "kind": "interest-sensitive",
+      "currency": "USD",
+      "status": "active",
+      "file": "savings/SBC2.json"
+    },
+    {
+      "code": "SBC3",
+      "name": "富邦人壽鑫享外幣利率變動型即期年金保險（乙型，25 年保證）",
+      "type": "savings",
+      "kind": "interest-sensitive",
+      "currency": "USD",
+      "status": "active",
+      "file": "savings/SBC3.json"
+    },
+    {
+      "code": "MGD2",
+      "name": "富邦人壽金安心健康一年定期保險",
+      "type": "protection",
+      "role": "main",
+      "category": "健康險",
+      "currency": "TWD",
+      "status": "stopped",
+      "file": "protection/MGD2.json"
     }
   ]
 }

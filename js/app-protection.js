@@ -44,7 +44,17 @@ function sumLabel(item) {
 
 async function fillTerms() {
   const item = await product();
-  document.querySelector("#demo").hidden = item.status !== "demo";
+  const demo = document.querySelector("#demo");
+  if (item.status === "stopped") {
+    demo.hidden = false;
+    demo.textContent = item.stop === "2021-01-01" ? "停售（110/01/01）" : `停售${item.stop ? `（${item.stop}）` : ""}`;
+  } else if (item.status === "demo") {
+    demo.hidden = false;
+    demo.textContent = "示範資料，非真實費率";
+  } else {
+    demo.hidden = true;
+  }
+  document.querySelector("#payDisc").parentElement.hidden = item.calc === "band" && !item.discounts?.pay;
   const source = item.sources?.[0];
   document.querySelector("#sourceNote").textContent = source ? `${source.version || item.code} · ${source.fetched}` : "";
   const termLabel = document.querySelector("label[for=term]");
