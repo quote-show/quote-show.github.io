@@ -1,0 +1,257 @@
+[
+  {
+    "code": "FBQ",
+    "age": 30,
+    "sex": 1,
+    "term": 3,
+    "sum": 250,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": 0.0435,
+    "mode": "PUA",
+    "expect": {
+      "reducedSum": 594500,
+      "death": 653637,
+      "surrender": 126968,
+      "at": 6,
+      "mode": "PUA",
+      "declaredRate": 0.0435
+    }
+  },
+  {
+    "code": "FBQ",
+    "age": 40,
+    "sex": 2,
+    "term": 3,
+    "sum": 250,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": 0.0435,
+    "mode": "PUA",
+    "expect": {
+      "reducedSum": 595000,
+      "death": 654164,
+      "surrender": 144182,
+      "at": 6,
+      "mode": "PUA",
+      "declaredRate": 0.0435
+    }
+  },
+  {
+    "code": "FBQ",
+    "age": 50,
+    "sex": 1,
+    "term": 3,
+    "sum": 500,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": 0.0435,
+    "mode": "PUA",
+    "expect": {
+      "reducedSum": 1243000,
+      "death": 1364685,
+      "surrender": 509060,
+      "at": 6,
+      "mode": "PUA",
+      "declaredRate": 0.0435
+    }
+  },
+  {
+    "code": "ICK",
+    "age": 30,
+    "sex": 1,
+    "term": 2,
+    "sum": 10,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": 0.026,
+    "mode": "PUA",
+    "expect": {
+      "reducedSum": 46730,
+      "death": 95448,
+      "surrender": 56570,
+      "at": 6,
+      "mode": "PUA",
+      "declaredRate": 0.026
+    }
+  },
+  {
+    "code": "ICK",
+    "age": 40,
+    "sex": 2,
+    "term": 2,
+    "sum": 10,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": 0.026,
+    "mode": "PUA",
+    "expect": {
+      "reducedSum": 46640,
+      "death": 77858,
+      "surrender": 52745,
+      "at": 6,
+      "mode": "PUA",
+      "declaredRate": 0.026
+    }
+  },
+  {
+    "code": "ICK",
+    "age": 50,
+    "sex": 1,
+    "term": 2,
+    "sum": 20,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": 0.026,
+    "mode": "PUA",
+    "expect": {
+      "reducedSum": 91760,
+      "death": 125112,
+      "surrender": 98852,
+      "at": 6,
+      "mode": "PUA",
+      "declaredRate": 0.026
+    }
+  },
+  {
+    "code": "PFE",
+    "age": 30,
+    "sex": 1,
+    "term": 2,
+    "sum": 0.5,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 2238,
+      "sumOnly": true
+    }
+  },
+  {
+    "code": "PFE",
+    "age": 40,
+    "sex": 2,
+    "term": 2,
+    "sum": 0.5,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 2232,
+      "sumOnly": true
+    }
+  },
+  {
+    "code": "PFE",
+    "age": 50,
+    "sex": 1,
+    "term": 2,
+    "sum": 1,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 4416,
+      "sumOnly": true
+    }
+  },
+  {
+    "code": "PFZA",
+    "age": 30,
+    "sex": 1,
+    "term": 6,
+    "sum": 0.5,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 740,
+      "death": 1797,
+      "surrender": 890,
+      "at": 6
+    }
+  },
+  {
+    "code": "PFZA",
+    "age": 34,
+    "sex": 2,
+    "term": 6,
+    "sum": 0.5,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 750,
+      "death": 1920,
+      "surrender": 909,
+      "at": 6
+    }
+  },
+  {
+    "code": "PFZA",
+    "age": 34,
+    "sex": 1,
+    "term": 6,
+    "sum": 1,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 1438,
+      "death": 4158,
+      "surrender": 1979,
+      "at": 6
+    }
+  },
+  {
+    "code": "XMP",
+    "age": 30,
+    "sex": 1,
+    "term": 2,
+    "sum": 10,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 46300,
+      "sumOnly": true
+    }
+  },
+  {
+    "code": "XMP",
+    "age": 40,
+    "sex": 2,
+    "term": 2,
+    "sum": 10,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 46250,
+      "sumOnly": true
+    }
+  },
+  {
+    "code": "XMP",
+    "age": 50,
+    "sex": 1,
+    "term": 2,
+    "sum": 20,
+    "rpuYear": 1,
+    "scenario": 2,
+    "declaredRate": null,
+    "mode": null,
+    "expect": {
+      "reducedSum": 90700,
+      "sumOnly": true
+    }
+  }
+]

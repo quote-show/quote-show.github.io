@@ -105,7 +105,7 @@ select.addEventListener("change", () => {
   const url = new URL(location.href);
   url.searchParams.set("code", select.value);
   history.replaceState(null, "", url);
-  fillTerms();
+  fillTerms().then(() => runQuote());
 });
 document.querySelector("#sum").addEventListener("input", (event) => { event.target.dataset.touched = "1"; });
 ageInput.addEventListener("change", fillTerms);
@@ -129,7 +129,7 @@ document.querySelector("#jobs").addEventListener("click", (event) => {
   document.querySelector("#jobs").innerHTML = "";
 });
 
-document.querySelector("#calc").addEventListener("click", async () => {
+async function runQuote() {
   const error = document.querySelector("#error");
   error.hidden = true;
   try {
@@ -159,4 +159,11 @@ document.querySelector("#calc").addEventListener("click", async () => {
     error.hidden = false;
     error.textContent = reason.message;
   }
-});
+}
+document.querySelector("#calc").addEventListener("click", runQuote);
+for (const id of ["age", "birth", "sum", "term", "occ", "mode", "payDisc"]) {
+  document.querySelector(`#${id}`).addEventListener("input", runQuote);
+  document.querySelector(`#${id}`).addEventListener("change", runQuote);
+}
+document.querySelectorAll('input[name="sex"]').forEach((node) => node.addEventListener("change", runQuote));
+runQuote();

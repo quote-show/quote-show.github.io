@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>儲蓄型試算｜藝世錄報價</title>
+  <title>儲蓄型試算｜藝世錄報價工具</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價</a>
+    <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價工具</a>
     <nav>
       <a href="index.html">首頁</a>
       <a href="protection.html">保障型</a>
@@ -78,6 +78,23 @@
         <section class="panel" id="summary" hidden>
           <header><h2>結果</h2><span class="tag" id="summaryTag"></span></header>
           <p id="headline"></p>
+        </section>
+        <section class="panel" id="rpuBox" hidden>
+          <header><h2>減額繳清</h2><span class="tag">〔與繼續繳並排〕</span></header>
+          <label for="rpuYear">於第幾年末改為減額繳清</label>
+          <select id="rpuYear"></select>
+          <div id="rpuOut"></div>
+        </section>
+        <section class="panel" id="drawBox" hidden>
+          <header><h2>部分提領</h2><span class="tag">〔估算〕</span></header>
+          <div class="grid">
+            <div class="two">
+              <div><label for="drawFrom">從幾歲開始</label><input id="drawFrom" type="number" value="60"></div>
+              <div><label for="drawTo">領到幾歲</label><input id="drawTo" type="number" value="70"></div>
+            </div>
+            <div><label for="drawAmt">每年提領</label><input id="drawAmt" type="number" value="1000"></div>
+          </div>
+          <div id="drawOut"></div>
         </section>
         <section class="panel" id="tableWrap" hidden>
           <header><h2>逐年</h2><span class="tag">〔每列一年〕</span></header>

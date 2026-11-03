@@ -1,4 +1,4 @@
-# 藝世錄報價
+# 藝世錄報價工具
 
 Show 的個人保險快速試算站。純靜態檔案，GitHub Pages 從 `main` 的根目錄發布：<https://quote-show.github.io/>
 

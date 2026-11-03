@@ -68,7 +68,7 @@
 
 `calc` 決定算法：`protection` 主約、`rider`／`plan`／`tmr`／`waiver` 附約與豁免、`band` 只有年齡帶保費、`savings` 儲蓄型逐年表。儲蓄型另有 `kind`：`dividend`、`interest-sensitive`、`fixed`。
 
-`calc` 另外可以是 `fbo`（美利大運：前幾年增額繳清，其後儲存生息，宣告利率可改）或 `annuity`（即期年金月給付，附加費用與年金因子，宣告利率可改）。`band` 若有 `modeFactors`，年繳保費再乘繳別係數。停售商品的 `status` 是 `stopped`，`stop` 是停售日。
+`calc` 另外可以是 `fbo`（美利大運：前幾年增額繳清，其後儲存生息，宣告利率可改）或 `annuity`（即期年金月給付，附加費用與年金因子，宣告利率可改）。`band` 若有 `modeFactors`，年繳保費再乘繳別係數。停售商品的 `status` 是 `stopped`，`stop` 是停售日。有減額繳清的商品多一個 `rpu`：`keys` 的鍵是 `年期|性別|年齡`，值含 `PA`（每萬減額繳清保額）、`PV`、`CV`、`NSP`。`withdrawal` 為真才顯示部分提領。
 
 對不上或抽不完整的商品記在 `data/skipped.json`，不放進目錄。
 

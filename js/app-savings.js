@@ -1,4 +1,4 @@
-import { preferredSavingsMode, quoteProduct, savingsModes } from "./calc.js";
+import { preferredSavingsMode, quoteProduct, quoteRpu, quoteWithdraw, savingsModes } from "./calc.js";
 import { fillVersion, loadJson, money, percent } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
@@ -67,17 +67,20 @@ select.addEventListener("change", () => {
   const url = new URL(location.href);
   url.searchParams.set("code", select.value);
   history.replaceState(null, "", url);
-  fillTerms();
+  fillTerms().then(() => runQuote());
 });
 await fillTerms();
 
-document.querySelector("#calc").addEventListener("click", async () => {
+let quoting = false;
+async function runQuote() {
+  if (quoting) return;
+  quoting = true;
   const error = document.querySelector("#error");
   error.hidden = true;
   try {
     const item = await product();
     const scenario = document.querySelector("#scenario").value === "low" ? 1 : document.querySelector("#scenario").value === "mid" ? 2 : Number(document.querySelector("#scenario").value || 2);
-    const result = quoteProduct(item, {
+    const input = {
       age: Number(document.querySelector("#age").value),
       sex: Number(document.querySelector("#sex").value),
       term: Number(document.querySelector("#term").value),
@@ -87,7 +90,8 @@ document.querySelector("#calc").addEventListener("click", async () => {
       mode: item.calc === "fbo"
         ? document.querySelector("#payMode").value
         : preferredSavingsMode(item, savingsModes(item, `${document.querySelector("#term").value}|${document.querySelector("#sex").value}|${document.querySelector("#age").value}`)),
-    });
+    };
+    const result = quoteProduct(item, input);
     const yearTen = result.rows[Math.min(9, result.rows.length - 1)];
     if (item.calc === "annuity") {
       document.querySelector("#headline").innerHTML = `躉繳 ${money(result.payable, item.currency)} · 首月年金 ${money(result.firstPayment, item.currency)} · 第 ${yearTen.t} 年累計年金 ${money(yearTen.X, item.currency)} · 含領回內部報酬率 ${percent(result.irr10)}`;
@@ -101,8 +105,64 @@ document.querySelector("#calc").addEventListener("click", async () => {
     document.querySelector("#summary").hidden = false;
     document.querySelector("#summaryTag").textContent = item.calc === "annuity" ? "〔即期年金〕" : item.kind === "dividend" ? "〔分紅〕" : item.isr ? "〔利變〕" : "〔固定〕";
     document.querySelector("#tableWrap").hidden = false;
+    renderRpu(item, input, result);
+    renderDraw(item, result, input);
   } catch (reason) {
     error.hidden = false;
     error.textContent = reason.message;
+    document.querySelector("#rpuBox").hidden = true;
+    document.querySelector("#drawBox").hidden = true;
+  } finally {
+    quoting = false;
   }
-});
+}
+
+function renderRpu(item, input, result) {
+  const box = document.querySelector("#rpuBox");
+  const pack = item.rpu?.keys?.[`${input.term}|${input.sex}|${input.age}`];
+  const years = pack?.PA?.map((value, index) => value > 0 ? index + 1 : 0).filter(Boolean) || [];
+  if (!years.length) { box.hidden = true; return; }
+  const select = document.querySelector("#rpuYear");
+  const previous = select.value;
+  select.innerHTML = years.map((year) => `<option value="${year}">第 ${year} 年末</option>`).join("");
+  if (years.map(String).includes(previous)) select.value = previous;
+  box.hidden = false;
+  const reduced = quoteRpu(item, { ...input, rpuYear: Number(select.value) });
+  const face = money(input.sum * 10000, item.currency);
+  const lines = [`<p>減額繳清保額 ${money(reduced.reducedSum, item.currency)}，原保額 ${face}</p>`];
+  if (reduced.sumOnly) {
+    lines.push("<p>這一年只列減額後保額。辦理後各年的解約金與身故，建議書沒有另給因子。</p>");
+  } else {
+    const shown = reduced.rows.filter((row) => row.t <= reduced.year + 8 || row.t % 5 === 0 || row.t === reduced.rows.length);
+    lines.push(`<div class="scroll"><table><thead><tr><th>年度</th><th>繼續繳解約</th><th>減額解約</th><th>繼續繳身故</th><th>減額身故</th></tr></thead><tbody>${shown.map((row) => {
+      const base = result.rows[row.t - 1];
+      return `<tr><td>${row.t}</td><td>${money(base.X, item.currency)}</td><td>${money(row.X, item.currency)}</td><td>${money(base.W, item.currency)}</td><td>${money(row.W, item.currency)}</td></tr>`;
+    }).join("")}</tbody></table></div>`);
+  }
+  document.querySelector("#rpuOut").innerHTML = lines.join("");
+}
+
+function renderDraw(item, result, input) {
+  const box = document.querySelector("#drawBox");
+  box.hidden = !item.withdrawal;
+  if (!item.withdrawal) return;
+  const from = Number(document.querySelector("#drawFrom").value);
+  const to = Number(document.querySelector("#drawTo").value);
+  const amount = Number(document.querySelector("#drawAmt").value);
+  const planned = {};
+  for (const row of result.rows) {
+    if (row.age >= from && row.age <= to && row.t > Number(input.term)) planned[row.t] = amount;
+  }
+  const drawn = quoteWithdraw(result.rows, planned);
+  const shown = drawn.rows.filter((row) => row.w || row.t <= 5 || row.t % 5 === 0);
+  document.querySelector("#drawOut").innerHTML = `<p>累計提領 ${money(drawn.rows.at(-1).cw, item.currency)}${drawn.shortfall ? `，第 ${drawn.shortfall} 年超過解約金` : ""}</p><div class="scroll"><table><thead><tr><th>年度</th><th>提領</th><th>提領後解約</th><th>提領後身故</th></tr></thead><tbody>${shown.map((row) => `<tr><td>${row.t}</td><td>${money(row.w, item.currency)}</td><td>${money(row.X, item.currency)}</td><td>${money(row.W, item.currency)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+document.querySelector("#calc").addEventListener("click", runQuote);
+for (const id of ["age", "sex", "term", "sum", "scenario", "declared", "payMode", "rpuYear", "drawFrom", "drawTo", "drawAmt"]) {
+  const node = document.querySelector(`#${id}`);
+  if (!node) continue;
+  node.addEventListener("input", runQuote);
+  node.addEventListener("change", runQuote);
+}
+runQuote();

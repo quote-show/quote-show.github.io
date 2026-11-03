@@ -648,7 +648,13 @@ function projectInterest(product, input, id, mode, first, renewal) {
   let juvenileAccount = 0;
   let accountTotal = 0;
   const rows = [];
+  const rpu = input.rpu;
+  const payLimit = rpu ? Math.min(payYears, rpu.n) : payYears;
   for (let year = 1; year <= years; year += 1) {
+    if (rpu && year > rpu.n) {
+      sum = 0;
+      if (year === rpu.n + 1) paidUp += rpu.Sp;
+    }
     const valueRound = product.isrUp === false ? roundHalfUp : roundUp;
     const death = valueRound(tables.die[id][year - 1] * sum);
     const cash = valueRound(tables.cv[id][year - 1] * sum);
@@ -712,11 +718,17 @@ function projectInterest(product, input, id, mode, first, renewal) {
     let addedCash = valueRound(rnd(paidUp / 1e4 * tables.pvfb0[id][year], 3)) + (late ? 0 : extra);
     if (juvenileDeath != null) addedDeath = juvenileDeath;
     if (juvenileCash != null) addedCash = juvenileCash;
+    else if (rpu && year > rpu.n) {
+      const reserveUnit = tables.pv[id][year - 1];
+      const cashUnit = tables.cv[id][year - 1];
+      const ratio = reserveUnit > 0 ? Math.min(1, cashUnit / reserveUnit) : 1;
+      if (ratio < 1) addedCash -= valueRound(rpu.Sp / 1e4 * (tables.pvfb0[id][year] || 0) * (1 - ratio));
+    }
     const baseSurvival = survival ? roundUp(survival[year - 1] * sum) : 0;
     const addedSurvival = survival ? roundUp(survival[year - 1] * paidUp / 1e4) : 0;
     const cashOut = late && mode === "PC" ? share : 0;
     const account = late && mode === "PS" ? accountTotal : 0;
-    const premium = (year <= payYears) ? (year === 1 ? first : renewal) - (year > 1 && age + year - 2 < 16 ? offsetUsed : 0) : 0;
+    const premium = (year <= payLimit) ? (year === 1 ? first : renewal) - (year > 1 && age + year - 2 < 16 ? offsetUsed : 0) : 0;
     const previous = rows.length ? rows[rows.length - 1].cum : 0;
     offsetUsed = offsetNext;
     offsetNext = 0;
@@ -830,15 +842,28 @@ export function quoteFbo(product, input) {
   let balance = 0;
   const history = [];
   const rows = [];
+  const rpu = input.rpu;
+  let face = sum;
+  const payLimit = rpu ? Math.min(term, rpu.n) : term;
   for (let year = 1; year <= years; year += 1) {
-    const part = up10(pv[year - 1] * sum * diff);
+    if (rpu && year > rpu.n) {
+      face = 0;
+      if (year === rpu.n + 1) paid += rpu.Sp;
+    }
+    const part = up10(pv[year - 1] * face * diff);
     const extra = year === 1 ? 0 : up10(r3(paid / 1e4 * pvfb[year]) * diff);
     const feedback = year === 1 ? Math.ceil(part - 1e-9) : Math.ceil(part - 1e-9) + Math.ceil(extra - 1e-9);
     if (year <= lock && pvfb[year]) paid += Math.floor(feedback / (pvfb[year] / 1e4) + 0.5);
-    const deathAdd = Math.ceil(die2[year - 1] * paid / 1e4 - 1e-9);
-    const cashAdd = Math.ceil(r3(paid / 1e4 * pvfb0[year]) - 1e-9);
-    const baseDeath = Math.ceil(die[year - 1] * sum - 1e-9);
-    const baseCash = Math.ceil(cv[year - 1] * sum - 1e-9);
+    let deathAdd = Math.ceil(die2[year - 1] * paid / 1e4 - 1e-9);
+    let cashAdd = Math.ceil(r3(paid / 1e4 * pvfb0[year]) - 1e-9);
+    if (rpu && year > rpu.n) {
+      const reserveUnit = pv[year - 1];
+      const cashUnit = cv[year - 1];
+      const ratio = reserveUnit > 0 ? Math.min(1, cashUnit / reserveUnit) : 1;
+      if (ratio < 1) cashAdd -= Math.ceil(r3(rpu.Sp / 1e4 * pvfb0[year] * (1 - ratio)) - 1e-9);
+    }
+    const baseDeath = Math.ceil(die[year - 1] * face - 1e-9);
+    const baseCash = Math.ceil(cv[year - 1] * face - 1e-9);
     let booked = 0;
     for (let month = 0; month < 12; month += 1) {
       const index = (year - 1) * 12 + month;
@@ -857,7 +882,7 @@ export function quoteFbo(product, input) {
     if (year > lock && mode === "PS") balance += feedback + booked;
     const store = mode === "PS" ? balance : 0;
     const previous = rows.length ? rows[rows.length - 1].cum : 0;
-    const premium = year <= term ? (year === 1 ? first : renewal) : 0;
+    const premium = year <= payLimit ? (year === 1 ? first : renewal) : 0;
     rows.push({
       t: year,
       age: age + year - 1,
@@ -938,6 +963,133 @@ export function quoteAnnuity(product, input) {
   result.net = net;
   result.mode = "M";
   return result;
+}
+
+function reducedFace(pa, sum, rnd) {
+  if (!(pa > 0)) return 0;
+  if (rnd === "round") return Math.floor(Math.round(pa * sum * 1e9) / 1e9 + 0.5);
+  if (rnd === "raw") return Math.round(pa * sum * 1e6) / 1e6;
+  return Math.ceil(Math.round(pa * sum * 1e9) / 1e9);
+}
+
+function rpuRatio(product, id, year, term) {
+  const pack = product.rpu?.keys?.[id];
+  if (year < (Number(term) || 1) && pack?.PV?.[year - 1] > 0) return Math.min(1, pack.CV[year - 1] / pack.PV[year - 1]);
+  const point = Math.max(year, Number(term) || 1);
+  const cash = product.tables?.cv?.[id]?.[point - 1];
+  const reserve = product.tables?.pvfb0?.[id]?.[point];
+  return cash > 0 && reserve > 0 ? Math.min(1, cash / reserve) : 1;
+}
+
+function projectReduced(product, input, id, yearN, reduced, continued) {
+  const tables = product.tables;
+  const scenario = Number(input.scenario ?? 2);
+  const include = scenario ? 1 : 0;
+  const bonusId = `${id}|${scenario || 1}`;
+  const round = product.rup ? (value) => ceilScaled(value, 1e6) : roundHalfUp;
+  const age = Number(input.age);
+  const term = Number(input.term);
+  const sum = Number(input.sum);
+  const years = product.fixedYears || Math.max(1, product.maxAge - age + 1);
+  const payYears = product.payYears === "age" ? term - age : term;
+  const bonus = include ? tables.bonu?.[bonusId] : null;
+  const bonusDeath = include ? tables.bonuDie?.[bonusId] : null;
+  const bonusCash = include ? tables.bonuCv?.[bonusId] : null;
+  const survival = tables.srv?.[id];
+  let paidUp = 0;
+  let cum = 0;
+  const rows = [];
+  for (let year = 1; year <= years; year += 1) {
+    const converted = year > yearN;
+    const unit = converted ? reduced / 1e4 : sum;
+    const per = include && bonus ? bonus[year - 1] : 0;
+    const death = converted ? round(unit * (tables.die2[id][year - 1] || 0)) : round(tables.die[id][year - 1] * sum);
+    const cash = converted
+      ? round(unit * (tables.pvfb0[id][year] || 0) * rpuRatio(product, id, year, term))
+      : round(tables.cv[id][year - 1] * sum);
+    let dividend = include ? round(unit * per) : 0;
+    if (include && year > 1 && product.puaK) dividend += round(paidUp / 1e4 * per);
+    const price = tables.pvfb?.[id]?.[year] || 0;
+    if (year < years && price) paidUp += product.mDiv ? roundHalfUp(dividend / (price / 1e4)) : roundHalfUp(dividend / price);
+    const extra = year === years && product.finalExtra ? dividend : 0;
+    const addedDeath = round(paidUp / 1e4 * (tables.die2?.[id]?.[year - 1] || 0)) + extra;
+    const addedCash = round(paidUp / 1e4 * (tables.pvfb0?.[id]?.[year] || 0)) + extra;
+    const terminalDeath = bonusDeath ? round(include * unit * bonusDeath[year - 1]) : 0;
+    const terminalCash = bonusCash ? round(include * unit * bonusCash[year - 1]) : 0;
+    const baseSurvival = survival ? round(survival[year - 1] * unit) : 0;
+    const addedSurvival = survival ? round(survival[year - 1] * paidUp / 1e4) : 0;
+    const premium = !converted && year <= payYears ? (year === 1 ? continued.payable : continued.renewal) : 0;
+    cum += premium;
+    rows.push({
+      t: year,
+      age: age + year - 1,
+      py: premium,
+      cum,
+      W: death + addedDeath + terminalDeath,
+      X: cash + addedCash + terminalCash,
+      surv: baseSurvival + addedSurvival,
+      cash: 0,
+      K: dividend,
+      base: converted ? reduced : sum * 10000,
+      pua: paidUp,
+    });
+  }
+  return rows;
+}
+
+export function quoteRpu(product, input) {
+  const year = Number(input.rpuYear);
+  const age = Number(input.age);
+  const sex = Number(input.sex);
+  const term = Number(input.term);
+  const sum = Number(input.sum);
+  const id = `${term}|${sex}|${age}`;
+  const pack = product.rpu?.keys?.[id];
+  if (!pack?.PA?.length) throw new Error("這個條件沒有減額繳清");
+  const factor = pack.PA[year - 1];
+  if (!(factor > 0)) throw new Error("這一年不能辦減額繳清");
+  const reducedSum = reducedFace(factor, sum, product.rpu.rnd);
+  const plain = { ...input, rpu: undefined, rpuYear: undefined };
+  const continued = quoteProduct(product, plain);
+  const payYears = product.payYears === "age" ? term - age : term;
+  const juvenile = (product.isr || product.calc === "fbo") && age + year < (product.p4a ?? product.lockAge ?? 16);
+  const scaleAtEnd = product.rpu.saOnly && product.rpu.scale && year >= payYears - 1;
+  const sumOnly = (product.rpu.saOnly && !scaleAtEnd) || juvenile || !product.tables?.die2?.[id];
+  if (sumOnly) return { reducedSum, year, sumOnly: true, continued, rows: null };
+  let rows;
+  if (scaleAtEnd) {
+    const scale = reducedSum / (sum * 1e4);
+    let cum = 0;
+    rows = continued.rows.map((row) => {
+      const converted = row.t > year;
+      const factor = converted ? scale : 1;
+      const py = converted ? 0 : row.py;
+      cum += py;
+      const scaled = (value) => Math.round((value || 0) * factor);
+      return { ...row, py, cum, W: scaled(row.W), X: scaled(row.X), surv: scaled(row.surv), cash: scaled(row.cash), K: scaled(row.K), base: converted ? reducedSum : sum * 1e4 };
+    });
+  } else if (product.isr || product.calc === "fbo") {
+    rows = quoteProduct(product, { ...plain, rpu: { n: year, Sp: reducedSum } }).rows;
+  } else {
+    rows = projectReduced(product, plain, id, year, reducedSum, continued);
+  }
+  return { reducedSum, year, sumOnly: false, continued, rows };
+}
+
+export function quoteWithdraw(rows, planned) {
+  let factor = 1;
+  let taken = 0;
+  let shortfall = null;
+  const out = rows.map((row) => {
+    const surrender = row.X * factor;
+    const wanted = planned[row.t] || 0;
+    const draw = Math.min(wanted, Math.max(0, surrender));
+    if (wanted > surrender + 0.5 && shortfall == null) shortfall = row.t;
+    if (draw > 0) factor *= surrender > 0 ? 1 - draw / surrender : 0;
+    taken += draw;
+    return { ...row, w: draw, cw: taken, X: row.X * factor, W: row.W * factor, m: factor };
+  });
+  return { rows: out, shortfall };
 }
 
 export function quoteProduct(product, input) {
