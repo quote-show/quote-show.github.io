@@ -18,7 +18,8 @@ Show 的個人保險快速試算站。純靜態檔案，GitHub Pages 從 `main` 
 | `overview.html` | 這一組的保障總覽；網址帶年齡、性別與各商品保額，重新打開仍是同一組 |
 | `explain.html` | 商品解說（條款與費率表上的給付） |
 | `waiver.html` | WP、WPA、WPF1、WPH 的差異 |
-| `savings.html` | 儲蓄型：逐年解約金、身故給付、含領回內部報酬率 |
+| `savings.html` | 儲蓄型：快速選商品、生存金領回、逐年解約金與身故給付 |
+| `data/savings-index.json` | 儲蓄型篩選用目錄（幣別、年期、有無生存金），由各商品 JSON 整理 |
 | `compare.html` | 儲蓄型並排，最多三欄 |
 | `css/quote.css` | 藝世錄配色與手機卡片 |
 | `js/engine.js` | 保險年齡、內部報酬率 |

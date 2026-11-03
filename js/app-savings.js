@@ -4,6 +4,75 @@ import { fillVersion, loadJson, money, percent } from "./ui.js";
 const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
 const savings = catalog.products.filter((item) => item.type === "savings");
+const picker = await loadJson("data/savings-index.json");
+const kindName = { dividend: "分紅", "interest-sensitive": "利變", fixed: "固定利率" };
+const currencyName = { TWD: "新臺幣", USD: "美元" };
+
+function termLabel(term) {
+  return Number(term) === 1 ? "躉繳" : `${term} 年`;
+}
+
+function matchesPicker(item) {
+  const currency = document.querySelector("#qCur").value;
+  const kind = document.querySelector("#qKind").value;
+  const term = document.querySelector("#qTerm").value;
+  const ageRaw = document.querySelector("#qAge").value;
+  const query = document.querySelector("#qFind").value.trim().toLowerCase();
+  const survivalOnly = document.querySelector("#qSurv").checked;
+  if (currency === "other" && (item.currency === "TWD" || item.currency === "USD")) return false;
+  if (currency && currency !== "other" && item.currency !== currency) return false;
+  if (kind === "annuity" && !item.annuity) return false;
+  if (kind && kind !== "annuity" && (item.kind !== kind || item.annuity)) return false;
+  if (survivalOnly && !item.survival && !item.annuity) return false;
+  if (query && !`${item.code} ${item.name}`.toLowerCase().includes(query)) return false;
+  const age = ageRaw === "" ? null : Number(ageRaw);
+  const bands = term ? item.bands.filter((band) => String(band.term) === term) : item.bands;
+  if (term && !bands.length) return false;
+  if (age != null && !bands.some((band) => age >= band.min && age <= band.max)) return false;
+  return true;
+}
+
+function renderQuick() {
+  const terms = [...new Set(picker.flatMap((item) => item.bands.map((band) => band.term)))].sort((a, b) => a - b);
+  const termSelect = document.querySelector("#qTerm");
+  const current = termSelect.value;
+  termSelect.innerHTML = `<option value="">不限</option>${terms.map((term) => `<option value="${term}">${termLabel(term)}</option>`).join("")}`;
+  if (terms.map(String).includes(current)) termSelect.value = current;
+  const found = picker.filter(matchesPicker);
+  document.querySelector("#qCount").textContent = `${found.length} 項`;
+  document.querySelector("#qList").innerHTML = found.map((item) => {
+    const years = [...new Set(item.bands.map((band) => band.term))].sort((a, b) => a - b).map(termLabel).join("、");
+    const mark = item.annuity ? "年金" : item.survival ? "生存金" : "累積型";
+    return `<button type="button" data-jump="${item.code}"><b>${item.code}</b> ${item.name}<small>${currencyName[item.currency] || item.currency} · ${item.annuity ? "年金" : kindName[item.kind] || item.kind} · ${years} · ${mark}</small></button>`;
+  }).join("") || `<p class="tag">沒有符合的商品。</p>`;
+}
+
+function renderSurvival(item, result) {
+  const box = document.querySelector("#survOut");
+  const paying = result.rows.filter((row) => row.surv > 0);
+  if (!paying.length) {
+    box.innerHTML = `<p>這張建議書沒有逐年生存金或年金。可在上面勾「只看有生存金或年金」改選。</p><p class="tag">試算。實際給付以正式建議書及保單條款為準。</p>`;
+    return;
+  }
+  let total = 0;
+  const schedule = paying.map((row) => {
+    total += row.surv;
+    return { ...row, total };
+  });
+  const first = schedule[0];
+  const period = item.monthlySurvival
+    ? `每月 ${money(first.surv / 12, item.currency)}，全年 ${money(first.surv, item.currency)}`
+    : item.calc === "annuity"
+      ? `當年年金 ${money(first.surv, item.currency)}`
+      : `當年生存金 ${money(first.surv, item.currency)}`;
+  const varied = schedule.some((row) => row.surv !== first.surv);
+  const rows = schedule.length <= 12
+    ? schedule
+    : schedule.filter((row, index) => index < 8 || row.t % 5 === 0 || index === schedule.length - 1 || row.surv !== schedule[index - 1].surv);
+  box.innerHTML = `<p>第 ${first.t} 年開始領回，保險年齡 ${first.age} 歲。${period}。${varied ? "之後各年金額依建議書生存金表，不一定相同。" : "這組條件下各年金額相同。"}</p>
+    <p>累計領回到表上最後一列 ${money(schedule.at(-1).total, item.currency)}。試算。實際給付以正式建議書及保單條款為準。</p>
+    <div class="scroll"><table><thead><tr><th>年度</th><th>年齡</th><th>${item.monthlySurvival ? "全年／每月" : item.calc === "annuity" ? "當年年金" : "當年生存金"}</th><th>累計領回</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.t}</td><td>${row.age}</td><td>${money(row.surv, item.currency)}${item.monthlySurvival ? `<br>${money(row.surv / 12, item.currency)}` : ""}</td><td>${money(row.total, item.currency)}</td></tr>`).join("")}</tbody></table></div>`;
+}
 const params = new URLSearchParams(location.search);
 const initial = params.get("code") && savings.some((item) => item.code === params.get("code")) ? params.get("code") : savings[0].code;
 const select = document.querySelector("#product");
@@ -63,6 +132,19 @@ async function fillTerms() {
   sum.step = item.sumInsured.step || 1;
 }
 
+renderQuick();
+for (const id of ["qCur", "qKind", "qTerm", "qAge", "qFind", "qSurv"]) {
+  document.querySelector(`#${id}`).addEventListener("input", renderQuick);
+  document.querySelector(`#${id}`).addEventListener("change", renderQuick);
+}
+document.querySelector("#qList").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-jump]");
+  if (!button) return;
+  select.value = button.dataset.jump;
+  select.dispatchEvent(new Event("change"));
+  document.querySelector("#survBox").scrollIntoView({ block: "start" });
+});
+
 select.addEventListener("change", () => {
   const url = new URL(location.href);
   url.searchParams.set("code", select.value);
@@ -105,11 +187,13 @@ async function runQuote() {
     document.querySelector("#summary").hidden = false;
     document.querySelector("#summaryTag").textContent = item.calc === "annuity" ? "〔即期年金〕" : item.kind === "dividend" ? "〔分紅〕" : item.isr ? "〔利變〕" : "〔固定〕";
     document.querySelector("#tableWrap").hidden = false;
+    renderSurvival(item, result);
     renderRpu(item, input, result);
     renderDraw(item, result, input);
   } catch (reason) {
     error.hidden = false;
     error.textContent = reason.message;
+    document.querySelector("#survOut").innerHTML = `<p>${reason.message}</p>`;
     document.querySelector("#rpuBox").hidden = true;
     document.querySelector("#drawBox").hidden = true;
   } finally {

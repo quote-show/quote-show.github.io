@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>儲蓄型試算｜藝世錄報價工具</title>
+  <title>儲蓄型｜藝世錄報價工具</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
@@ -25,11 +25,42 @@
       <header class="family-head">
         <div class="family-brand">
           <span class="badge"><img src="/assets/logo.png" alt=""></span>
-          <h1 id="pageTitle">儲蓄型試算</h1>
+          <h1 id="pageTitle">儲蓄型</h1>
         </div>
         <p class="rule" aria-hidden="true"><span></span></p>
       </header>
       <div class="family-body">
+        <style>
+          .qlist { max-height: 280px; overflow: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+          .qlist button { text-align: left; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); padding: 6px 10px; }
+          .qlist button small { display: block; color: var(--faint); font-weight: 400; }
+          .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        </style>
+        <section class="panel" id="quick">
+          <header><h2>快速選商品</h2><span class="tag" id="qCount"></span></header>
+          <div class="filters">
+            <div>
+              <label for="qCur">幣別</label>
+              <select id="qCur"><option value="">全部</option><option value="TWD">新臺幣</option><option value="USD">美元</option><option value="other">其他</option></select>
+            </div>
+            <div>
+              <label for="qKind">類型</label>
+              <select id="qKind"><option value="">全部</option><option value="dividend">分紅</option><option value="interest-sensitive">利變</option><option value="fixed">固定利率</option><option value="annuity">年金</option></select>
+            </div>
+            <div>
+              <label for="qTerm">繳費年期</label>
+              <select id="qTerm"><option value="">不限</option></select>
+            </div>
+            <div>
+              <label for="qAge">投保年齡</label>
+              <input id="qAge" type="number" min="0" max="90" placeholder="不限">
+            </div>
+          </div>
+          <label class="choices"><input id="qSurv" type="checkbox"> 只看有生存金或年金</label>
+          <label for="qFind">搜尋代號或名稱</label>
+          <input id="qFind" type="search" placeholder="例如 XMP、優退" autocomplete="off">
+          <div class="qlist" id="qList"></div>
+        </section>
         <p class="demo" id="demo" hidden>示範資料，非真實費率</p>
         <p class="tag" id="sourceNote"></p>
         <section class="panel">
@@ -74,6 +105,10 @@
           </div>
           <p><button class="gold" id="calc" type="button">算出逐年表</button></p>
           <p class="error" id="error" hidden></p>
+        </section>
+        <section class="panel" id="survBox">
+          <header><h2>生存金領回</h2><span class="tag">〔試算〕</span></header>
+          <div id="survOut"></div>
         </section>
         <section class="panel" id="summary" hidden>
           <header><h2>結果</h2><span class="tag" id="summaryTag"></span></header>
