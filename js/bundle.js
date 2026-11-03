@@ -3,7 +3,7 @@
  * 每一列保費仍用這個站自己的費率計算。
  */
 
-import { quoteProduct } from "./calc.js";
+import { quoteProduct, sumLimits } from "./calc.js";
 
 const MODES = ["annual", "semi", "quarterly", "monthly"];
 const MODE_NAME = { annual: "年繳", semi: "半年繳", quarterly: "季繳", monthly: "月繳" };
@@ -17,6 +17,9 @@ const CAPCO = { XWS5: 1, OLA6: 1, XDY: 1, AJC1: 1, AJI: 1, CLX: 1, CLZ: 1, CIA: 
 const LIFECO = { XWS5: 1, OLA6: 1, XDY: 1, LTS: 100, SDG: 1, SDP: 1, SDH: 1, SDJ: 1, SDKA: 1, SWB5: 1, SWD1: 1, SWW: 1 };
 const SURG = { SIE: 1, SJR1: 1 };
 const LTC_WHOLE = ["LTS", "LTQ"];
+const SDGS = ["SDG", "SDH", "SDJ", "SDN", "SDP"];
+const CMR_PAIR = ["CWR4", "PCC5", "HSV", "HSY"];
+const UNIT = { wan: "萬", day: "元／日", unit: "單位", usd: "萬美元", yuan: "元", plan: "計畫", h: "元" };
 
 export function modeName(mode) {
   return MODE_NAME[mode] || mode;
@@ -274,6 +277,104 @@ export function quoteBundle(byCode, input) {
     totalPayable: priced.reduce((sum, line) => sum + (line.currency === "USD" ? 0 : line.payable), 0),
     mode,
   };
+}
+
+function ageBands(product) {
+  return Object.entries(product.issueAges || {}).filter(([, value]) => Array.isArray(value) && value.length >= 2);
+}
+
+export function personEligible(product, input) {
+  const sex = Number(input.sex);
+  const age = Number(input.age);
+  const occupation = Number(input.occupation || 1);
+  const allowed = product.sex || [1, 2];
+  if (!allowed.includes(sex)) return { ok: false, why: sex === 1 ? "女性專屬商品" : "男性專屬商品" };
+  const min = product.occupation?.min ?? 1;
+  const max = product.occupation?.max ?? 6;
+  if (occupation < min || occupation > max) return { ok: false, why: `職業限第 ${min}–${max} 類` };
+  if (PARENT.has(product.code)) {
+    const band = product.issueAges?.any || ageBands(product)[0]?.[1];
+    const parent = input.parentAge;
+    if (parent == null || parent === "") {
+      if (band && age + 15 > band[1]) return { ok: false, why: `被保險人 ${age} 歲，要保人年齡會超過 ${band[1]} 歲上限` };
+      return { ok: true, note: band ? `看要保人年齡 ${band[0]}–${band[1]} 歲` : "" };
+    }
+    if (band && (Number(parent) < band[0] || Number(parent) > band[1])) return { ok: false, why: `要保人年齡需 ${band[0]}–${band[1]} 歲` };
+    return { ok: true };
+  }
+  const bands = ageBands(product);
+  const hit = bands.filter(([, value]) => age >= value[0] && age <= value[1]);
+  if (bands.length && !hit.length) {
+    const text = bands.map(([key, value]) => `${key === "any" ? "" : `${key} 年 `}${value[0]}–${value[1]} 歲`).join("、");
+    return { ok: false, why: `投保年齡 ${text}` };
+  }
+  return { ok: true, terms: hit.map(([key]) => key).filter((key) => Number.isFinite(Number(key))) };
+}
+
+function blockReason(product, info, chosen) {
+  if (!info) return "請先選主約";
+  const allow = riderOnMain(product.code, info);
+  if (!allow.ok) return allow.why;
+  if (product.code === "TMR" && !chosen.has("ADG")) return "須同一主約勾選 ADG";
+  if ((product.code === "CMR" || product.code === "CNR") && !SDGS.includes(info.code) && !CMR_PAIR.some((code) => chosen.has(code))) {
+    return "須搭 SDG、SDH、SDJ、SDN、SDP 主約，或同時勾選 CWR4、PCC5、HSV、HSY";
+  }
+  if (product.code === "FDE" && chosen.has("FDF")) return "不可與 FDF 同附一主約";
+  if (product.code === "FDF" && chosen.has("FDE")) return "不可與 FDE 同附一主約";
+  if (product.code !== "WPH" && WAIVERS.includes(product.code) && chosen.has("WPH")) return "已勾選 WPH，不可再附加其他豁免附約";
+  if (product.code === "WPH" && WAIVERS.some((code) => code !== "WPH" && chosen.has(code))) return "已勾選其他豁免附約，WPH 不可再併附";
+  return "";
+}
+
+function controlOf(product, input, person) {
+  const age = Number(input.age);
+  const occupation = Number(input.occupation || 1);
+  if (product.calc === "waiver" || product.unitKind === "waiver") return { kind: "waiver" };
+  if (product.calc === "plan" || product.unitKind === "plan") {
+    const plans = product.sumRule?.planGrid?.[`${age}|${occupation}`] || product.sumRule?.plans || [1];
+    return { kind: "plan", plans };
+  }
+  const limits = sumLimits(product, age, occupation);
+  const terms = (person.terms || []).map(Number);
+  return {
+    kind: "sum",
+    min: limits.min,
+    max: limits.max,
+    step: limits.step || 1,
+    unit: UNIT[product.unitKind] || "",
+    terms: terms.length > 1 ? terms : [],
+  };
+}
+
+export function listRiders(byCode, input) {
+  const main = byCode[input.main];
+  const info = main ? describe(main) : null;
+  const chosen = new Set(input.chosen || []);
+  const riders = Object.values(byCode)
+    .filter((product) => product.role === "rider" || product.role === "waiver" || product.calc === "waiver")
+    .sort((a, b) => (a.category || "").localeCompare(b.category || "", "zh-Hant") || a.code.localeCompare(b.code));
+  const attachable = [];
+  const blocked = [];
+  for (const product of riders) {
+    const person = personEligible(product, input);
+    if (!person.ok) {
+      blocked.push({ code: product.code, name: product.name, category: product.category || "附約", why: person.why });
+      continue;
+    }
+    const why = blockReason(product, info, chosen);
+    if (why) {
+      blocked.push({ code: product.code, name: product.name, category: product.category || "附約", why });
+      continue;
+    }
+    attachable.push({
+      code: product.code,
+      name: product.name,
+      category: product.category || "附約",
+      note: person.note || "",
+      ...controlOf(product, input, person),
+    });
+  }
+  return { attachable, blocked };
 }
 
 export function attachableRiders(byCode, mainCode) {

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>保障總覽｜藝世錄報價工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/quote.css?v=2">
+  <style>
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .chip { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; font-size: 13px; }
+    .benefit { margin: 0; }
+    .benefit header { align-items: flex-start; }
+    .benefit h2 { margin: 0; }
+    .benefit .sum { color: var(--gold-ink); font-size: 0.82rem; text-align: right; white-space: normal; }
+    .benefit ul { margin: 6px 0 0; padding-left: 1.15rem; }
+    .benefit li { margin: 6px 0; }
+    .code { font-weight: 700; margin-right: 6px; }
+    .sub { display: block; color: var(--faint); font-size: 0.78rem; font-weight: 400; white-space: normal; }
+    button.ghost { width: auto; cursor: pointer; }
+    @media print {
+      header.top, .noprint { display: none; }
+      body { background: #fff; }
+      .sheet { max-width: none; width: auto; }
+      .family-card::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價工具</a>
+    <nav>
+      <a href="index.html">首頁</a>
+      <a href="protection.html">保障型</a>
+      <a href="bundle.html">組合</a>
+      <a href="savings.html">儲蓄型</a>
+      <a href="compare.html">比較</a>
+    </nav>
+  </header>
+  <main class="sheet">
+    <section class="family-card">
+      <header class="family-head">
+        <div class="family-brand">
+          <span class="badge"><img src="/assets/logo.png" alt=""></span>
+          <h1>保障總覽</h1>
+        </div>
+        <p class="rule" aria-hidden="true"><span></span></p>
+      </header>
+      <div class="family-body" id="body"></div>
+      <footer class="foot">
+        <span>個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準。上面的給付金額依條款或費率表，按這次選的保額、日額換算，實際給付仍以保單條款為準。</span>
+        <strong data-version>DEMO-0</strong>
+      </footer>
+    </section>
+  </main>
+  <script type="module" src="js/app-overview.js"></script>
+</body>
+</html>

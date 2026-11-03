@@ -10,7 +10,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/quote.css?v=2">
 </head>
-<body>
+<body class="has-cart">
+  <style>
+    body.has-cart { padding-bottom: 108px; }
+    .hint { color: var(--faint); font-size: 0.82rem; white-space: normal; }
+    .catbar { margin: 12px 0 4px; padding-left: 8px; border-left: 3px solid var(--gold); font-family: var(--serif); color: var(--gold-ink); }
+    .rider { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin: 6px 0; }
+    .rider.on { border-color: var(--gold); background: var(--card); }
+    .pick { display: flex; gap: 8px; align-items: flex-start; }
+    .pick input { width: 22px; height: 22px; min-height: 0; margin-top: 3px; flex: none; }
+    .pick b { margin-right: 4px; }
+    .pick small, .why { display: block; color: var(--faint); font-size: 0.78rem; font-weight: 400; white-space: normal; }
+    .rider-ctl { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+    .rider-ctl input, .rider-ctl select { width: 108px; flex: none; min-height: 40px; }
+    .prem { margin-left: auto; max-width: 48%; text-align: right; font-weight: 700; font-size: 0.82rem; color: var(--gold-ink); }
+    #rnolist { margin-top: 8px; }
+    #rnolist summary { cursor: pointer; color: var(--gold-ink); }
+    #rnl p { margin: 8px 0; font-size: 0.86rem; }
+    .cart { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--card); border-top: 1px solid var(--line-mid); box-shadow: 0 -2px 12px rgba(80, 60, 30, 0.12); }
+    .cartbar { display: flex; align-items: center; gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+    .cartbar .sum { flex: 1; min-width: 0; font-size: 0.78rem; line-height: 1.35; }
+    .cartbar .sum b { display: block; font-size: 1.02rem; color: var(--gold-ink); }
+    .cartbar .gold, .cartbar .ghost { flex: none; min-height: 36px; padding: 0 10px; font-size: 0.82rem; }
+    .cartbody { max-height: 46vh; overflow: auto; padding: 0 10px 12px; }
+    .cartbody th, .cartbody td { font-size: 0.72rem; }
+    .cartbody th:nth-child(n+2), .cartbody td:nth-child(n+2) { white-space: nowrap; }
+    @media print { .cart, body.has-cart { position: static; padding-bottom: 0; box-shadow: none; } }
+  </style>
   <header class="top">
     <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價工具</a>
     <nav>
@@ -101,19 +127,16 @@
           </div>
         </section>
         <section class="panel">
-          <header><h2>附約與豁免</h2><span class="tag">〔可附加的才列出〕</span></header>
-          <div id="riders"></div>
+          <header><h2>附約與豁免</h2><span class="tag" id="riderCount"></span></header>
+          <p class="hint" id="rhint"></p>
+          <div id="rlist"></div>
+          <details id="rnolist">
+            <summary>此條件不可投保的附約 <span id="rnolistcnt"></span></summary>
+            <div id="rnl"></div>
+          </details>
         </section>
         <p class="error" id="error" hidden></p>
-        <section class="panel" id="result" hidden>
-          <header><h2>保費</h2><span class="tag" id="resultTag"></span></header>
-          <div class="scroll"><table>
-            <thead><tr><th>項目</th><th>年繳</th><th>本期</th><th>次年</th></tr></thead>
-            <tbody id="lines"></tbody>
-          </table></div>
-          <p id="total" class="money"></p>
-          <p id="rules" class="tag"></p>
-        </section>
+        <p class="hint" id="rules"></p>
       </div>
       <footer class="foot">
         <span>個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準</span>
@@ -121,6 +144,14 @@
       </footer>
     </section>
   </main>
+  <div id="cart" class="cart">
+    <div class="cartbar">
+      <div class="sum" id="cartsum">尚未計算</div>
+      <a class="gold" id="overview" href="overview.html">保障總覽</a>
+      <button type="button" class="ghost" id="cartopen" aria-expanded="false">明細 ▲</button>
+    </div>
+    <div class="cartbody" id="cartbody" hidden></div>
+  </div>
   <script type="module" src="js/app-bundle.js"></script>
 </body>
 </html>

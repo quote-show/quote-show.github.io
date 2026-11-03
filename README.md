@@ -15,6 +15,7 @@ Show 的個人保險快速試算站。純靜態檔案，GitHub Pages 從 `main` 
 | `index.html` | 首頁與商品目錄 |
 | `protection.html` | 保障型：主約、附約、豁免、產險年齡帶 |
 | `bundle.html` | 主約加多個附約、豁免的合計 |
+| `overview.html` | 這一組的保障總覽；網址帶年齡、性別與各商品保額，重新打開仍是同一組 |
 | `explain.html` | 商品解說（條款與費率表上的給付） |
 | `waiver.html` | WP、WPA、WPF1、WPH 的差異 |
 | `savings.html` | 儲蓄型：逐年解約金、身故給付、含領回內部報酬率 |

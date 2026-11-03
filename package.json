@@ -2,6 +2,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/engine.test.mjs && node tests/ported.test.mjs && node tests/official.test.mjs && node tests/rpu.test.mjs && node tests/bundle.test.mjs"
+    "test": "node tests/engine.test.mjs && node tests/ported.test.mjs && node tests/official.test.mjs && node tests/rpu.test.mjs && node tests/bundle.test.mjs && node tests/overview.test.mjs"
   }
 }

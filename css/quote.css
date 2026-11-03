@@ -251,6 +251,13 @@ input[type="radio"] {
 
 .stepper button, .gold { background: var(--gold-soft); }
 
+a.gold {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--gold-ink);
+}
+
 .ghost { background: var(--card); color: var(--gold-ink); }
 
 .choices { display: flex; flex-wrap: wrap; gap: 8px; }
