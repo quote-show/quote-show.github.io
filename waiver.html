@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>豁免附約比較｜藝世錄報價工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/quote.css?v=2">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="index.html"><img src="/assets/logo.png" alt="">藝世錄報價工具</a>
+    <nav>
+      <a href="index.html">首頁</a>
+      <a href="protection.html">保障型</a>
+      <a href="bundle.html">組合</a>
+      <a href="savings.html">儲蓄型</a>
+      <a href="compare.html">比較</a>
+    </nav>
+  </header>
+  <main class="sheet">
+    <section class="family-card">
+      <header class="family-head">
+        <div class="family-brand">
+          <span class="badge"><img src="/assets/logo.png" alt=""></span>
+          <h1>豁免附約比較</h1>
+        </div>
+        <p class="rule" aria-hidden="true"><span></span></p>
+      </header>
+      <div class="family-body">
+        <p class="tag">條款與投保規則上的差異。保費在<a href="bundle.html">組合估價</a>依主約與附約年繳自動計算。</p>
+        <div class="scroll"><table>
+          <thead><tr><th></th><th>WP</th><th>WPA</th><th>WPF1</th><th>WPH</th></tr></thead>
+          <tbody>
+            <tr><th>看誰</th><td>被保險人本人</td><td>要保人（父母）</td><td>要保人（父母）</td><td>被保險人本人</td></tr>
+            <tr><th>條件</th><td>疾病或意外喪失一切工作能力，持續超過 180 天</td><td>身故，或條款附表所列失能</td><td>7 項重大疾病：急性心肌梗塞（重度）、冠狀動脈繞道手術、腦中風後障礙（重度）、末期腎病變、癌症（重度）、癱瘓（重度）、重大器官或造血幹細胞移植</td><td>7 項重大疾病、7 項特定傷病，或意外 180 日內 1–6 級失能</td></tr>
+            <tr><th>等待期</th><td>條款未列</td><td>條款未列</td><td>90 天（意外所致不受限）</td><td>30 天；癌症（重度）90 天（意外所致不受限）</td></tr>
+            <tr><th>投保年齡</th><td>14–50 歲</td><td>18 歲起，上限隨年期約 45–55 歲</td><td>同 WPA</td><td>15–60 歲</td></tr>
+            <tr><th>豁免範圍</th><td>主約、本附約與其他附約續期保費</td><td>主約與其他附約，不含其他豁免附約</td><td>主約與其他附約，不含其他豁免附約</td><td>主約與其他附約</td></tr>
+            <tr><th>保費</th><td colspan="4">投保金額＝主約與附約年繳應繳保費。WPA、WPF1 用要保人年齡與性別。</td></tr>
+          </tbody>
+        </table></div>
+        <p class="tag">出處：WP 條款 113.09.23、WPA 條款 113.08.19、WPF1 條款 113.09.23、WPH 條款 114.06.02，以及對應投保規則。失能等級以條款附表為準。</p>
+      </div>
+      <footer class="foot">
+        <span>個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準</span>
+        <strong data-version>DEMO-0</strong>
+      </footer>
+    </section>
+  </main>
+  <script type="module">
+    import { fillVersion, loadJson } from "./js/ui.js";
+    fillVersion(await loadJson("data/products.json"));
+  </script>
+</body>
+</html>

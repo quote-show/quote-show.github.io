@@ -57,6 +57,13 @@ async function fillTerms() {
   document.querySelector("#payDisc").parentElement.hidden = item.calc === "band" && !item.discounts?.pay;
   const source = item.sources?.[0];
   document.querySelector("#sourceNote").textContent = source ? `${source.version || item.code} · ${source.fetched}` : "";
+  const explainBox = document.querySelector("#explain");
+  try {
+    const explain = await loadJson(`data/explain/${item.code}.json`);
+    explainBox.innerHTML = `<p>${explain.tagline}</p><p><a href="explain.html?code=${encodeURIComponent(item.code)}">商品解說</a></p>`;
+  } catch {
+    explainBox.innerHTML = "";
+  }
   const termLabel = document.querySelector("label[for=term]");
   if (item.calc === "band") {
     termLabel.textContent = "計畫";
