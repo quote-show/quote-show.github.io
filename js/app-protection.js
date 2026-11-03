@@ -1,17 +1,26 @@
-import { insuranceAge, lookupAgeRate, premium, waiverPremium } from "./engine.js";
+import { quoteProduct, sumLimits } from "./calc.js";
+import { insuranceAge } from "./engine.js";
 import { fillVersion, loadJson, money } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
-const products = {};
-for (const item of catalog.products.filter((row) => row.type === "protection")) {
-  products[item.code] = await loadJson(`data/${item.file}`);
+const protection = catalog.products.filter((item) => item.type === "protection");
+const params = new URLSearchParams(location.search);
+const initial = params.get("code");
+const select = document.querySelector("#main");
+select.innerHTML = protection.map((item) => `<option value="${item.code}">${item.name}</option>`).join("");
+if (initial && protection.some((item) => item.code === initial)) select.value = initial;
+
+const cache = new Map();
+async function product() {
+  const code = select.value;
+  if (!cache.has(code)) cache.set(code, loadJson(`data/protection/${code}.json`));
+  return cache.get(code);
 }
 
-const mainSelect = document.querySelector("#main");
-mainSelect.innerHTML = Object.values(products).map((item) => `<option value="${item.code}">${item.name}</option>`).join("");
 const ageInput = document.querySelector("#age");
 const birthInput = document.querySelector("#birth");
+let jobs = [];
 
 function selectedSex() {
   return Number(document.querySelector('input[name="sex"]:checked').value);
@@ -28,98 +37,113 @@ document.querySelector("#ageMinus").addEventListener("click", () => { ageInput.v
 document.querySelector("#agePlus").addEventListener("click", () => { ageInput.value = String(Number(ageInput.value) + 1); });
 syncAgeFromBirth();
 
-function currentProduct() {
-  return products[mainSelect.value];
+function sumLabel(item) {
+  const unit = { wan: "萬元", day: "元／日", h: "元", usd: item.role === "rider" ? "萬美元" : "美元", unit: "單位", plan: "計畫", waiver: "元", yuan: "元" };
+  return item.calc === "waiver" ? "被豁免的年繳保費" : `保額（${unit[item.unitKind] || "元"}）`;
 }
 
-function fillTerms() {
-  const product = currentProduct();
-  document.querySelector("#term").innerHTML = Object.keys(product.issueAges).map((term) => `<option value="${term}">${term} 年期</option>`).join("");
-  const limits = product.sumInsured;
-  const sum = document.querySelector("#sum");
-  sum.min = limits.min;
-  sum.max = limits.max;
-  sum.step = limits.step;
-}
-
-function fillRiders() {
-  const product = currentProduct();
+async function fillTerms() {
+  const item = await product();
+  document.querySelector("#demo").hidden = item.status !== "demo";
+  const source = item.sources?.[0];
+  document.querySelector("#sourceNote").textContent = source ? `${source.version || item.code} · ${source.fetched}` : "";
+  const termLabel = document.querySelector("label[for=term]");
+  if (item.calc === "band") {
+    termLabel.textContent = "計畫";
+    document.querySelector("#term").innerHTML = (item.plans || []).map((name) => `<option value="${name}">${name}</option>`).join("");
+  } else {
+    termLabel.textContent = "年期";
+    const terms = Object.keys(item.issueAges || {}).filter((term) => Number.isFinite(Number(term)));
+    document.querySelector("#term").innerHTML = (terms.length ? terms : ["1"]).map((term) => `<option value="${term}">${term} 年期</option>`).join("");
+  }
+  document.querySelector("#sumLabel").textContent = sumLabel(item);
+  const sample = item.verificationSamples?.[0];
+  if (sample && !document.querySelector("#sum").dataset.touched) ageInput.value = sample.age;
   const age = Number(ageInput.value);
-  const occ = Number(document.querySelector("#occ").value);
-  const box = document.querySelector("#riders");
-  box.innerHTML = product.riders.map((rider) => {
-    const [lo, hi] = rider.issueAges;
-    const ok = age >= lo && age <= hi && occ >= rider.occupation.min && occ <= rider.occupation.max;
-    return `<label><input type="checkbox" data-rider="${rider.code}" ${ok ? "" : "disabled"}> ${rider.name}${ok ? "" : "（此年齡或職業不可附加）"}</label>
-      <input data-rider-sum="${rider.code}" type="number" value="${rider.sumInsured.min}" min="${rider.sumInsured.min}" max="${rider.sumInsured.max}" step="${rider.sumInsured.step}" ${ok ? "" : "disabled"}>`;
-  }).join("");
+  const limits = item.calc === "waiver" ? { min: 1, max: 5000000, step: 1 } : sumLimits(item, age, Number(document.querySelector("#occ").value));
+  const sum = document.querySelector("#sum");
+  if (limits.min != null) sum.min = limits.min;
+  if (limits.max != null) sum.max = limits.max;
+  sum.step = limits.step || 1;
+  const rules = [item.rule, item.note, item.cover].filter(Boolean);
+  document.querySelector("#rules").innerHTML = rules.map((line) => `<p>${line}</p>`).join("")
+    || "<p>費率表已收錄。核保仍以正式投保規則為準。</p>";
+  const sexAllowed = item.sex || [1, 2];
+  document.querySelectorAll('input[name="sex"]').forEach((input) => {
+    input.disabled = !sexAllowed.includes(Number(input.value));
+    if (input.disabled && input.checked) {
+      const other = document.querySelector(`input[name="sex"][value="${sexAllowed[0]}"]`);
+      if (other) other.checked = true;
+    }
+  });
+  if (sample && !document.querySelector("#sum").dataset.touched) {
+    ageInput.value = sample.age;
+    const sex = document.querySelector(`input[name="sex"][value="${sample.sex}"]`);
+    if (sex && !sex.disabled) sex.checked = true;
+    const preset = item.calc === "band" ? sample.plan : sample.term;
+    if ([...document.querySelector("#term").options].some((option) => option.value === String(preset))) {
+      document.querySelector("#term").value = String(preset);
+    }
+    document.querySelector("#occ").value = String(sample.occupation || 1);
+    document.querySelector("#sum").value = item.calc === "waiver" ? sample.covered : sample.sum;
+    document.querySelector("#ageTag").textContent = `〔保險年齡 ${sample.age}〕`;
+  }
 }
 
-mainSelect.addEventListener("change", () => { fillTerms(); fillRiders(); });
-ageInput.addEventListener("change", fillRiders);
-document.querySelector("#occ").addEventListener("change", fillRiders);
-fillTerms();
-fillRiders();
+select.addEventListener("change", () => {
+  document.querySelector("#sum").dataset.touched = "";
+  const url = new URL(location.href);
+  url.searchParams.set("code", select.value);
+  history.replaceState(null, "", url);
+  fillTerms();
+});
+document.querySelector("#sum").addEventListener("input", (event) => { event.target.dataset.touched = "1"; });
+ageInput.addEventListener("change", fillTerms);
+document.querySelector("#occ").addEventListener("change", fillTerms);
+await fillTerms();
 
-function highSumDiscount(product, sum) {
-  const steps = product.discounts.highSum || [];
-  const hit = steps.filter(([door]) => sum >= door).sort((a, b) => b[0] - a[0])[0];
-  return hit ? hit[1] : 0;
-}
+loadJson("data/occupation.json").then((rows) => { jobs = rows; }).catch(() => { jobs = []; });
+document.querySelector("#job").addEventListener("input", (event) => {
+  const query = event.target.value.trim();
+  const box = document.querySelector("#jobs");
+  if (!query) { box.innerHTML = ""; return; }
+  const found = jobs.filter((item) => `${item.job}${item.category}${item.subcategory}`.includes(query)).slice(0, 8);
+  box.innerHTML = found.map((item) => `<button type="button" class="ghost" data-class="${item.class}" data-job="${item.job}">${item.job} · ${item.class || "—"}類</button>`).join("");
+});
+document.querySelector("#jobs").addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+  const occ = document.querySelector("#occ");
+  if ([...occ.options].some((option) => option.value === button.dataset.class)) occ.value = button.dataset.class;
+  document.querySelector("#job").value = button.dataset.job;
+  document.querySelector("#jobs").innerHTML = "";
+});
 
-document.querySelector("#calc").addEventListener("click", () => {
+document.querySelector("#calc").addEventListener("click", async () => {
   const error = document.querySelector("#error");
   error.hidden = true;
   try {
-    const product = currentProduct();
-    const age = Number(ageInput.value);
-    const sex = selectedSex();
-    const term = document.querySelector("#term").value;
-    const [lo, hi] = product.issueAges[term];
-    if (age < lo || age > hi) throw new Error("保險年齡不在這個年期的範圍裡");
-    const occ = Number(document.querySelector("#occ").value);
-    if (occ < product.occupation.min || occ > product.occupation.max) throw new Error("這個職業類別不能投保");
-    const sum = Number(document.querySelector("#sum").value);
-    if (sum < product.sumInsured.min || sum > product.sumInsured.max || (sum - product.sumInsured.min) % product.sumInsured.step !== 0) {
-      throw new Error("保額不在上下限或級距裡");
-    }
-    const mode = document.querySelector("#mode").value;
-    const factor = product.modeFactors[mode];
-    const rate = lookupAgeRate(product.rates[`${term}|${sex}`], age);
-    if (rate == null) throw new Error("沒有這個條件的費率");
-    const main = premium({
-      units: sum / product.unit,
-      rate,
-      modeFactor: factor,
-      discounts: [highSumDiscount(product, sum), product.discounts.pay],
-      cap: product.discounts.cap,
+    const item = await product();
+    const result = quoteProduct(item, {
+      age: Number(ageInput.value),
+      sex: selectedSex(),
+      occupation: Number(document.querySelector("#occ").value),
+      term: document.querySelector("#term").value,
+      sum: Number(document.querySelector("#sum").value),
+      covered: Number(document.querySelector("#sum").value),
+      plan: item.calc === "band" ? document.querySelector("#term").value : 1,
+      mode: document.querySelector("#mode").value,
+      payDiscount: document.querySelector("#payDisc").checked,
     });
-    const lines = [`<p>主約年繳 ${money(main.annual)}，本期 ${money(main.payable)}</p>`];
-    let waivedAnnual = main.annual;
-    let modalTotal = main.payable;
-    for (const rider of product.riders) {
-      const checked = document.querySelector(`[data-rider="${rider.code}"]`);
-      if (!checked || !checked.checked) continue;
-      const riderSum = Number(document.querySelector(`[data-rider-sum="${rider.code}"]`).value);
-      const riderRate = lookupAgeRate(rider.rates[String(sex)], age);
-      const part = premium({
-        units: riderSum / rider.unit,
-        rate: riderRate,
-        modeFactor: factor,
-        discounts: [product.discounts.pay],
-        cap: product.discounts.cap,
-      });
-      waivedAnnual += part.annual;
-      modalTotal += part.payable;
-      lines.push(`<p>${rider.name} 本期 ${money(part.payable)}</p>`);
-    }
-    const waiverRate = product.waiver.ratePer10k[`${term}|${sex}`];
-    const waiver = waiverPremium({ waivedAnnual, ratePer10k: waiverRate, modeFactor: factor });
-    modalTotal += waiver.payable;
-    lines.push(`<p>${product.waiver.name} 本期 ${money(waiver.payable)}</p>`);
-    lines.push(`<p class="money">本期合計 ${money(modalTotal)}</p>`);
+    const lines = [
+      `<p>年繳 ${money(result.annual, result.currency)}，本期 ${money(result.payable, result.currency)}</p>`,
+    ];
+    if (result.payableNext != null) lines.push(`<p>第 ${result.nextFromYear || "後"} 年起本期 ${money(result.payableNext, result.currency)}</p>`);
+    if (result.payableRenew != null) lines.push(`<p>次年續保參考 ${money(result.payableRenew, result.currency)}</p>`);
+    lines.push(`<p class="money">本期合計 ${money(result.payable, result.currency)}</p>`);
     document.querySelector("#lines").innerHTML = lines.join("");
-    document.querySelector("#resultTag").textContent = `〔${mode === "annual" ? "年繳" : mode === "semi" ? "半年繳" : mode === "quarterly" ? "季繳" : "月繳"}〕`;
+    const mode = document.querySelector("#mode").selectedOptions[0].textContent;
+    document.querySelector("#resultTag").textContent = `〔${mode}〕`;
     document.querySelector("#result").hidden = false;
   } catch (reason) {
     error.hidden = false;

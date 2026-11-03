@@ -30,7 +30,8 @@
         <p class="rule" aria-hidden="true"><span></span></p>
       </header>
       <div class="family-body">
-        <p class="demo">示範資料，非真實費率</p>
+        <p class="demo" id="demo" hidden>示範資料，非真實費率</p>
+        <p class="tag" id="sourceNote"></p>
         <section class="panel">
           <header><h2>被保險人</h2><span class="tag" id="ageTag">〔保險年齡〕</span></header>
           <div class="grid">
@@ -49,6 +50,11 @@
             <div class="choices">
               <label><input type="radio" name="sex" value="1" checked>男</label>
               <label><input type="radio" name="sex" value="2">女</label>
+            </div>
+            <div>
+              <label for="job">職業（選一項帶入類別）</label>
+              <input id="job" type="search" placeholder="例如：內勤" autocomplete="off">
+              <div id="jobs"></div>
             </div>
             <div>
               <label for="occ">職業類別</label>
@@ -71,15 +77,15 @@
                 <select id="term"></select>
               </div>
               <div>
-                <label for="sum">保額</label>
+                <label for="sum" id="sumLabel">保額</label>
                 <input id="sum" type="number" min="0" step="100000" value="1000000">
               </div>
             </div>
           </div>
         </section>
         <section class="panel">
-          <header><h2>附約</h2><span class="tag">〔可附加〕</span></header>
-          <div id="riders"></div>
+          <header><h2>規則</h2><span class="tag">〔年齡與保額〕</span></header>
+          <div id="rules"></div>
         </section>
         <section class="panel">
           <header><h2>繳別</h2><span class="tag">〔折扣有上限〕</span></header>
@@ -89,6 +95,7 @@
             <option value="quarterly">季繳</option>
             <option value="monthly">月繳</option>
           </select>
+          <label class="choices"><input id="payDisc" type="checkbox" checked> 計入繳費方式折扣</label>
           <p><button class="gold" id="calc" type="button">計算保費</button></p>
           <p class="error" id="error" hidden></p>
         </section>

@@ -295,6 +295,10 @@ th:first-child, td:first-child { text-align: left; }
 
 .error { color: var(--up); font-size: 0.88rem; }
 
+#jobs { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+
+#jobs button { text-align: left; }
+
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 @media (min-width: 900px) {
