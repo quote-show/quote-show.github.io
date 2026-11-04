@@ -5,9 +5,19 @@ const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
 const savings = catalog.products.filter((item) => item.type === "savings");
 const cache = new Map();
-async function fileOf(code) {
-  if (!cache.has(code)) cache.set(code, loadJson(`data/savings/${code}.json`));
-  return cache.get(code);
+async function fileOf(code, term) {
+  const key = `${code}|${term ?? ""}`;
+  if (cache.has(key)) return cache.get(key);
+  const meta = await loadJson(`data/savings/${code}.json`);
+  if (!meta.splitTables) {
+    cache.set(key, meta);
+    return meta;
+  }
+  const useTerm = term || Object.keys(meta.issueAges)[0];
+  const tables = await loadJson(`data/savings/${code}/${useTerm}.json`);
+  const product = { ...meta, tables };
+  cache.set(`${code}|${useTerm}`, product);
+  return product;
 }
 const options = savings.map((item) => `<option value="${item.code}">${item.name}</option>`).join("");
 document.querySelector("#slots").innerHTML = [0, 1, 2].map((index) => `
@@ -24,12 +34,13 @@ document.querySelector("#run").addEventListener("click", async () => {
     const picked = [0, 1, 2].map((index) => document.querySelector(`#p${index}`).value).filter(Boolean);
     const results = [];
     for (const code of picked) {
-      const item = await fileOf(code);
-      const term = Number(Object.keys(item.issueAges)[0]);
-      const sample = item.verificationSamples?.[0];
+      const preview = await fileOf(code);
+      const term = Number(Object.keys(preview.issueAges)[0]);
+      const sample = preview.verificationSamples?.[0];
       const age = sample?.age ?? 30;
       const sex = sample?.sex ?? 1;
       const useTerm = sample?.term ?? term;
+      const item = await fileOf(code, useTerm);
       const sum = sample?.sum ?? item.sumInsured.min;
       const id = `${useTerm}|${sex}|${age}`;
       const result = quoteProduct(item, {

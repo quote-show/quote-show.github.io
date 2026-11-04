@@ -381,6 +381,14 @@ function remember(tables, id, data, raw, scenario) {
   }
 }
 
+function ceilingSum(smin, smax, maxf) {
+  const values = maxf ? Object.values(maxf).map(Number).filter((value) => Number.isFinite(value)) : [];
+  const top = values.length ? Math.max(...values) : null;
+  if (smax == null) return top ?? smin;
+  if (top != null && Number(smax) === Number(smin) && top > Number(smax)) return top;
+  return smax;
+}
+
 function buildSavings(meta, data, keyOf, hand) {
   const terms = meta.terms || meta.ages || {};
   const tables = { gp: {}, cv: {}, die: {}, die2: {}, pvfb: {}, pvfb0: {}, srv: {}, pv: {}, bonu: {}, bonuDie: {}, bonuCv: {} };
@@ -411,7 +419,7 @@ function buildSavings(meta, data, keyOf, hand) {
     sex: [1, 2],
     sumInsured: {
       min: meta.smin,
-      max: meta.smax ?? meta.smin,
+      max: ceilingSum(meta.smin, meta.smax, meta.maxf),
       byAge: meta.maxf || null,
     },
     maxAge: meta.maxAge || (hand ? 110 : 95),
@@ -615,7 +623,7 @@ function main() {
           cur: hand.C.cur || (html.includes("美元") ? "USD" : "TWD"),
           terms: Object.fromEntries(Object.entries(hand.C.ages).map(([term, band]) => [term, band])),
           smin: hand.C.smin,
-          smax: hand.C.smax || hand.C.smin,
+          smax: ceilingSum(hand.C.smin, hand.C.smax, hand.C.maxf),
           maxf: hand.C.maxf || null,
           m1: hand.C.m1?.includes("金融機構轉帳") ? "金融機構轉帳" : hand.C.m1?.[0],
           m2: hand.C.m2?.includes("金融機構轉帳") ? "金融機構轉帳" : hand.C.m2?.[0],

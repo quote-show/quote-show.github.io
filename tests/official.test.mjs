@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { quoteProduct } from "../js/calc.js";
+import { loadSavings } from "./load-savings.mjs";
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const load = (file) => JSON.parse(fs.readFileSync(path.join(root, file), "utf8"));
+const load = (file) => loadSavings(path.join(root, file));
 
 const fbo = load("data/savings/FBO.json");
 const saved = quoteProduct(fbo, { age: 39, sex: 1, term: 2, sum: 10, declaredRate: 0.0435, mode: "PS" });

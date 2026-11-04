@@ -1,15 +1,16 @@
 import { preferredSavingsMode, quoteProduct, quoteRpu, quoteWithdraw, savingsModes, sheetIrr } from "./calc.js";
-import { fillVersion, isKeyYear, loadJson, money, percent, watchTables } from "./ui.js";
+import { fillVersion, isKeyYear, loadJson, money, percent, resolveAge, watchTables } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
 const savings = catalog.products.filter((item) => item.type === "savings");
 const picker = await loadJson("data/savings-index.json");
 const kindName = { dividend: "分紅", "interest-sensitive": "利變", fixed: "固定利率" };
-const currencyName = { TWD: "新臺幣", USD: "美元" };
+const currencyName = { TWD: "新臺幣", USD: "美元", AUD: "澳幣" };
 
-function termLabel(term) {
-  return Number(term) === 1 ? "躉繳" : `${term} 年`;
+function termLabel(term, payToAge) {
+  if (payToAge) return `繳至 ${term} 歲`;
+  return Number(term) === 1 ? "躉繳" : `${term} 年期`;
 }
 
 function matchesPicker(item) {
@@ -19,7 +20,7 @@ function matchesPicker(item) {
   const ageRaw = document.querySelector("#qAge").value;
   const query = document.querySelector("#qFind").value.trim().toLowerCase();
   const survivalOnly = document.querySelector("#qSurv").checked;
-  if (currency === "other" && (item.currency === "TWD" || item.currency === "USD")) return false;
+  if (currency === "other" && ["TWD", "USD", "AUD"].includes(item.currency)) return false;
   if (currency && currency !== "other" && item.currency !== currency) return false;
   if (kind === "annuity" && !item.annuity) return false;
   if (kind && kind !== "annuity" && (item.kind !== kind || item.annuity)) return false;
@@ -36,12 +37,16 @@ function renderQuick() {
   const terms = [...new Set(picker.flatMap((item) => item.bands.map((band) => band.term)))].sort((a, b) => a - b);
   const termSelect = document.querySelector("#qTerm");
   const current = termSelect.value;
-  termSelect.innerHTML = `<option value="">不限</option>${terms.map((term) => `<option value="${term}">${termLabel(term)}</option>`).join("")}`;
+  const labelFor = (term) => {
+    const users = picker.filter((item) => item.bands.some((band) => band.term === term));
+    return termLabel(term, users.length > 0 && users.every((item) => item.payToAge));
+  };
+  termSelect.innerHTML = `<option value="">不限</option>${terms.map((term) => `<option value="${term}">${labelFor(term)}</option>`).join("")}`;
   if (terms.map(String).includes(current)) termSelect.value = current;
   const found = picker.filter(matchesPicker);
   document.querySelector("#qCount").textContent = `${found.length} 項`;
   document.querySelector("#qList").innerHTML = found.map((item) => {
-    const years = [...new Set(item.bands.map((band) => band.term))].sort((a, b) => a - b).map(termLabel).join("、");
+    const years = [...new Set(item.bands.map((band) => band.term))].sort((a, b) => a - b).map((term) => termLabel(term, item.payToAge)).join("、");
     const mark = item.annuity ? "年金" : item.survival ? "生存金" : "累積型";
     return `<button type="button" data-jump="${item.code}"><b>${item.code}</b> ${item.name}<small>${currencyName[item.currency] || item.currency} · ${item.annuity ? "年金" : kindName[item.kind] || item.kind} · ${years} · ${mark}</small></button>`;
   }).join("") || `<p class="tag">沒有符合的商品。</p>`;
@@ -78,16 +83,27 @@ const select = document.querySelector("#product");
 select.innerHTML = savings.map((item) => `<option value="${item.code}">${item.name}</option>`).join("");
 select.value = initial;
 const cache = new Map();
+const partCache = new Map();
 
-async function product() {
-  const code = select.value;
+async function metaOf(code) {
   if (!cache.has(code)) cache.set(code, loadJson(`data/savings/${code}.json`));
   return cache.get(code);
 }
 
+async function product() {
+  const item = await metaOf(select.value);
+  if (!item.splitTables) return item;
+  const term = document.querySelector("#term").value || Object.keys(item.issueAges)[0];
+  const key = `${item.code}|${term}`;
+  if (!partCache.has(key)) partCache.set(key, loadJson(`data/savings/${item.code}/${term}.json`));
+  return { ...item, tables: await partCache.get(key) };
+}
+
 async function fillTerms() {
-  const item = await product();
-  document.querySelector("#term").innerHTML = Object.keys(item.issueAges).map((term) => `<option>${term}</option>`).join("");
+  const item = await metaOf(select.value);
+  const previousTerm = document.querySelector("#term").value;
+  document.querySelector("#term").innerHTML = Object.keys(item.issueAges).map((term) => `<option value="${term}">${termLabel(term, item.payYears === "age")}</option>`).join("");
+  if (Object.keys(item.issueAges).includes(previousTerm)) document.querySelector("#term").value = previousTerm;
   document.querySelector("#codeTag").textContent = `〔${item.code}〕`;
   document.querySelector("#pageTitle").textContent = item.name;
   document.querySelector("#demo").hidden = item.status !== "demo";
@@ -115,7 +131,7 @@ async function fillTerms() {
     document.querySelector("label[for=term]").textContent = "繳費";
     document.querySelector("#term").innerHTML = `<option value="1">躉繳</option>`;
   } else {
-    document.querySelector("label[for=term]").textContent = "年期";
+    document.querySelector("label[for=term]").textContent = item.payYears === "age" ? "繳至" : "年期";
   }
   const sample = item.verificationSamples?.[0];
   if (sample) {
@@ -153,26 +169,66 @@ select.addEventListener("change", () => {
 await fillTerms();
 
 let quoting = false;
+let queued = false;
+function clearQuote() {
+  document.querySelector("#summary").hidden = true;
+  document.querySelector("#tableWrap").hidden = true;
+  document.querySelector("#rpuBox").hidden = true;
+  document.querySelector("#drawBox").hidden = true;
+  document.querySelector("#rows").innerHTML = "";
+  document.querySelector("#headline").textContent = "";
+  document.querySelector("#survOut").innerHTML = "";
+  document.querySelector("#rpuOut").innerHTML = "";
+}
+
+function showNotes(notes) {
+  const note = document.querySelector("#clampNote");
+  note.hidden = notes.length === 0;
+  note.textContent = notes.join("。");
+}
+
 async function runQuote() {
-  if (quoting) return;
+  if (quoting) {
+    queued = true;
+    return;
+  }
   quoting = true;
   const error = document.querySelector("#error");
   error.hidden = true;
   try {
-    const item = await product();
+    const item = await metaOf(select.value);
+    const term = document.querySelector("#term").value || Object.keys(item.issueAges)[0];
+    const band = item.issueAges[String(term)];
+    const resolved = resolveAge(document.querySelector("#age").value, band?.[0], band?.[1]);
+    if (resolved.error) {
+      clearQuote();
+      showNotes([]);
+      throw new Error(resolved.error);
+    }
+    if (String(document.querySelector("#age").value).trim() !== String(resolved.age)) {
+      document.querySelector("#age").value = String(resolved.age);
+    }
+    showNotes(resolved.notes);
+    const sumText = String(document.querySelector("#sum").value).trim();
+    if (sumText === "" || !Number.isFinite(Number(sumText))) {
+      clearQuote();
+      throw new Error("請輸入保額");
+    }
+    const priced = await product();
     const scenario = document.querySelector("#scenario").value === "low" ? 1 : document.querySelector("#scenario").value === "mid" ? 2 : Number(document.querySelector("#scenario").value || 2);
+    const modeId = `${document.querySelector("#term").value}|${document.querySelector("#sex").value}|${resolved.age}`;
     const input = {
-      age: Number(document.querySelector("#age").value),
+      age: resolved.age,
       sex: Number(document.querySelector("#sex").value),
       term: Number(document.querySelector("#term").value),
       sum: Number(document.querySelector("#sum").value),
       scenario,
       declaredRate: Number(document.querySelector("#declared").value),
-      mode: item.calc === "fbo"
+      mode: priced.calc === "fbo"
         ? document.querySelector("#payMode").value
-        : preferredSavingsMode(item, savingsModes(item, `${document.querySelector("#term").value}|${document.querySelector("#sex").value}|${document.querySelector("#age").value}`)),
+        : preferredSavingsMode(priced, savingsModes(priced, modeId)),
     };
-    const result = quoteProduct(item, input);
+    const result = quoteProduct(priced, input);
     const yearTen = result.rows[Math.min(9, result.rows.length - 1)];
     const keyOnly = document.querySelector("#keyYears").checked;
     const showParts = document.querySelector("#showParts").checked;
@@ -205,17 +261,20 @@ async function runQuote() {
     document.querySelector("#summary").hidden = false;
     document.querySelector("#summaryTag").textContent = item.calc === "annuity" ? "〔即期年金〕" : item.kind === "dividend" ? "〔分紅〕" : item.isr ? "〔利變〕" : "〔固定〕";
     document.querySelector("#tableWrap").hidden = false;
-    renderSurvival(item, result);
-    renderRpu(item, input, result);
-    renderDraw(item, result, input);
+    renderSurvival(priced, result);
+    renderRpu(priced, input, result);
+    renderDraw(priced, result, input);
   } catch (reason) {
     error.hidden = false;
     error.textContent = reason.message;
+    clearQuote();
     document.querySelector("#survOut").innerHTML = `<p>${reason.message}</p>`;
-    document.querySelector("#rpuBox").hidden = true;
-    document.querySelector("#drawBox").hidden = true;
   } finally {
     quoting = false;
+    if (queued) {
+      queued = false;
+      runQuote();
+    }
   }
 }
 

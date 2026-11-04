@@ -106,7 +106,7 @@ button, input, select { font: inherit; color: var(--ink); }
   width: min(300px, 86%);
   aspect-ratio: 1;
   transform: translateX(-50%);
-  background: url("/assets/logo.png") center / contain no-repeat;
+  background: url("/assets/logo.webp") center / contain no-repeat;
   opacity: 0.14;
   mix-blend-mode: multiply;
   pointer-events: none;
@@ -224,13 +224,15 @@ button, input, select { font: inherit; color: var(--ink); }
 
 label { display: block; font-size: 0.86rem; font-weight: 600; margin-bottom: 4px; }
 
-input, select {
+input, select, textarea {
   width: 100%;
   min-height: 44px;
   border: 1px solid var(--line-mid);
   border-radius: 12px;
   background: var(--card);
   padding: 0 12px;
+  font-size: 16px;
+  font-family: inherit;
 }
 
 input[type="checkbox"],
@@ -350,6 +352,8 @@ th:first-child, td:first-child { text-align: left; }
 .foot strong { color: var(--gold-ink); font-weight: 600; }
 
 .error { color: var(--up); font-size: 0.88rem; }
+
+#clampNote { color: var(--gold-ink); font-size: 0.9rem; }
 
 #jobs { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 

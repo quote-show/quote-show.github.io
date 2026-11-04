@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { quoteProduct } from "../js/calc.js";
+import { loadSavings } from "./load-savings.mjs";
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const catalog = JSON.parse(fs.readFileSync(path.join(root, "data/products.json"), "utf8"));
@@ -19,7 +20,8 @@ function actual(result, key) {
 }
 
 for (const item of catalog.products) {
-  const product = JSON.parse(fs.readFileSync(path.join(root, "data", item.file), "utf8"));
+  const file = path.join(root, "data", item.file);
+  const product = item.file.startsWith("savings/") ? loadSavings(file) : JSON.parse(fs.readFileSync(file, "utf8"));
   const samples = product.verificationSamples || [];
   if (samples.length < 3) {
     mismatches.push(`${item.code} 少於 3 組樣本`);

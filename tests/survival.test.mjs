@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { quoteProduct } from "../js/calc.js";
+import { loadSavings } from "./load-savings.mjs";
 
-const load = (code) => JSON.parse(fs.readFileSync(`data/savings/${code}.json`, "utf8"));
+const load = (code) => loadSavings(`data/savings/${code}.json`);
 
 // 對照 quote-yt 各商品頁 SRV 表（每萬元因子）。第 1 年尚無增額繳清，領回＝因子 × 保額。
 const cases = [

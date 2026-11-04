@@ -6,7 +6,28 @@ export function money(value, currency) {
   const body = Math.abs(n - whole) < 1e-6
     ? whole.toLocaleString("zh-Hant")
     : n.toLocaleString("zh-Hant", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return currency === "USD" ? `USD ${body}` : `NT$ ${body}`;
+  if (currency === "USD") return `USD ${body}`;
+  if (currency === "AUD") return `AUD ${body}`;
+  return `NT$ ${body}`;
+}
+
+export function resolveAge(raw, min, max) {
+  const text = String(raw ?? "").trim();
+  if (text === "") return { error: "請輸入年齡" };
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed)) return { error: "年齡必須是數字" };
+  const notes = [];
+  let age = parsed;
+  if (!Number.isInteger(parsed)) {
+    age = Math.trunc(parsed);
+    notes.push(`年齡 ${text} 已調整為 ${age} 歲`);
+  }
+  if (min != null && max != null && (age < min || age > max)) {
+    const next = Math.min(max, Math.max(min, age));
+    notes.push(`投保年齡要在 ${min}–${max} 歲，已調整為 ${next} 歲`);
+    age = next;
+  }
+  return { age, notes };
 }
 
 export function percent(value) {

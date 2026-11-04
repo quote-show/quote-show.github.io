@@ -1,7 +1,7 @@
 import { listRiders, modeName, quoteBundle } from "./bundle.js";
 import { quoteProduct, sumLimits } from "./calc.js";
 import { insuranceAge } from "./engine.js";
-import { fillVersion, loadJson, money, watchTables } from "./ui.js";
+import { fillVersion, loadJson, money, resolveAge, watchTables } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
 fillVersion(catalog);
@@ -338,10 +338,52 @@ function paintCart(result, input, runMode) {
   document.querySelector("#solo").textContent = `年繳 ${money(result.totalAnnual ?? result.lines[0]?.annual, result.currency)}，本期 ${money(result.totalPayable, result.currency)}${renew ? `，次年 ${money(renew.renewal, result.currency)}` : ""}`;
 }
 
+function ageBand(product) {
+  const term = document.querySelector("#term").value;
+  const ages = product.issueAges || {};
+  if (product.calc === "band") {
+    const plan = (ages.plans || []).find((item) => item.name === term);
+    return plan ? [plan.min, plan.max] : null;
+  }
+  const band = ages[String(term)] || ages.any || Object.values(ages).find((value) => Array.isArray(value) && value.length >= 2);
+  return band || null;
+}
+
+function clearProtection() {
+  document.querySelector("#solo").textContent = "";
+  document.querySelector("#cartsum").textContent = "無法試算";
+  document.querySelector("#cartbody").innerHTML = "";
+  document.querySelector("#rules").textContent = "";
+}
+
 function render() {
   const error = document.querySelector("#error");
+  const note = document.querySelector("#clampNote");
   error.hidden = true;
   const product = currentProduct();
+  const band = ageBand(product);
+  const resolved = resolveAge(document.querySelector("#age").value, band?.[0], band?.[1]);
+  if (resolved.error) {
+    error.hidden = false;
+    error.textContent = resolved.error;
+    note.hidden = true;
+    clearProtection();
+    return;
+  }
+  if (String(document.querySelector("#age").value).trim() !== String(resolved.age)) {
+    document.querySelector("#age").value = String(resolved.age);
+  }
+  note.hidden = resolved.notes.length === 0;
+  note.textContent = resolved.notes.join("。");
+  if (!document.querySelector("#sumWrap").hidden) {
+    const sumText = String(document.querySelector("#sum").value).trim();
+    if (sumText === "" || !Number.isFinite(Number(sumText))) {
+      error.hidden = false;
+      error.textContent = "請輸入保額";
+      clearProtection();
+      return;
+    }
+  }
   try {
     if (!isHost(product)) {
       const input = singleInput();
@@ -384,7 +426,7 @@ function render() {
   } catch (reason) {
     error.hidden = false;
     error.textContent = reason.message;
-    document.querySelector("#solo").textContent = "";
+    clearProtection();
   }
 }
 
