@@ -426,3 +426,41 @@ th:first-child, td:first-child { text-align: left; }
 .estate .plan h3 { color: var(--down); }
 
 .estate .story p, .estate .plan p { margin-top: 6px; }
+
+.estate .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+.estate .kpis div {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.estate .kpis span { display: block; color: var(--faint); font-size: 0.75rem; }
+
+.estate .kpis b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+.estate .callout {
+  background: #fff7ea;
+  border-radius: 12px;
+  padding: 8px 10px;
+  color: var(--gold-ink);
+  font-weight: 700;
+}
+
+.estate .finder { display: grid; gap: 4px; }
+
+.estate .matches { display: grid; gap: 4px; }
+
+.estate .matches button {
+  text-align: left;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 6px 10px;
+}
+
+.estate .matches small { display: block; color: var(--faint); font-weight: 400; }
+
+.estate table { font-variant-numeric: tabular-nums; }

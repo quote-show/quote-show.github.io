@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/quote.css?v=3">
+  <link rel="icon" href="/assets/logo.webp">
+  <link rel="stylesheet" href="/css/quote.css?v=4">
 </head>
 <body>
   <header class="top">
@@ -32,22 +33,26 @@
       </header>
       <div class="family-body estate">
         <p class="warn"><b>配息不保證、紅利不保證。</b>本頁是舉例試算，不是投資建議，也不承諾報酬。實際保費、核保、解約金與給付以公司正式建議書及保單條款為準；房貸以銀行核貸條件為準。</p>
+        <p class="actions"><button type="button" class="ghost" id="resetAll">重設為預設</button></p>
+        <p class="error" id="bootError" hidden></p>
 
         <section class="panel">
           <header><h2>房貸與配息試算</h2><span class="tag">〔舉例〕</span></header>
           <p class="demo">假設利率全期固定。寬限期只付息，之後剩餘年限攤還本息。</p>
           <div class="two">
-            <label>貸款本金（萬）<input id="loanPrincipal" type="number" value="800"></label>
-            <label>貸款利率（%）<input id="loanRate" type="number" value="2.6" step="0.01"></label>
-            <label>貸款年期（年）<input id="loanYears" type="number" value="30"></label>
-            <label>寬限期（年，無則 0）<input id="loanGrace" type="number" value="3"></label>
-            <label>投資金額（萬）<input id="investWan" type="number" value="300"></label>
-            <label>年化配息率（%，參考）<input id="dividendRate" type="number" value="10.68" step="0.01"></label>
-            <label>已繳期數（月）<input id="monthsPaid" type="number" value="180"></label>
+            <label>貸款本金（萬）<input id="loanPrincipal" data-group type="text" inputmode="decimal" value="800"></label>
+            <label>貸款利率（%）<input id="loanRate" type="text" inputmode="decimal" value="2.6"></label>
+            <label>貸款年期（年）<input id="loanYears" type="text" inputmode="numeric" value="30"></label>
+            <label>寬限期（年，無則 0）<input id="loanGrace" type="text" inputmode="numeric" value="3"></label>
+            <label>投資金額（萬）<input id="investWan" type="text" inputmode="decimal" value="300"></label>
+            <label>年化配息率（%，參考）<input id="dividendRate" type="text" inputmode="decimal" value="10.68"></label>
+            <label>已繳期數（月）<input id="monthsPaid" type="text" inputmode="numeric" value="180"></label>
           </div>
           <p class="check"><input id="usePortfolio" type="checkbox">用下方基金組合的每月配息合計，取代上面的配息率</p>
           <p id="portfolioNote" class="demo"></p>
+          <p class="demo" id="loanNote"></p>
           <p class="error" id="loanError" hidden></p>
+          <div class="kpis" id="loanKpis"></div>
           <div class="scroll"><table id="loanTable"></table></div>
           <p class="demo">缺口為負數，代表配息不足以支付房貸月付金。配息不保證。</p>
         </section>
@@ -56,11 +61,12 @@
           <header><h2>配息基金投資組合</h2><span class="tag">〔非保證〕</span></header>
           <p class="warn">配息不保證。基金淨值與配息會變動，過去配息不代表未來表現。匯差、轉換費與稅費未計入。這不是投資建議。</p>
           <div class="two">
-            <label>總投資金額（台幣）<input id="fundAmount" type="number" value="6000000"></label>
-            <label>美元匯率（USD/TWD）<input id="usdRate" type="number" value="32" step="0.01"></label>
-            <label>費用係數（金額 × 係數）<input id="fundFee" type="number" value="0.95" step="0.01"></label>
+            <label>總投資金額（台幣）<input id="fundAmount" data-group type="text" inputmode="decimal" value="6,000,000"></label>
+            <label>美元匯率（USD/TWD）<input id="usdRate" type="text" inputmode="decimal" value="32"></label>
+            <label>費用係數（金額 × 係數）<input id="fundFee" type="text" inputmode="decimal" value="0.95"></label>
           </div>
           <div id="fundRows"></div>
+          <p class="error" id="fundError" hidden></p>
           <p class="actions"><button type="button" class="gold" id="fundAdd">新增基金</button><button type="button" class="ghost" id="fundEven">平均分配</button><span id="fundWeight"></span></p>
           <div class="scroll"><table id="fundTable"></table></div>
           <p class="demo" id="fundSource"></p>
@@ -75,24 +81,24 @@
             <button type="button" class="ghost" id="policyPresetSheet">套用建議書原值（28 歲男・躉繳）</button>
           </p>
           <div class="two">
-            <label>客戶保險年齡<input id="policyAge" type="number" min="0" max="80" value="60"></label>
+            <label>客戶保險年齡<input id="policyAge" type="text" inputmode="numeric" value="60"></label>
             <label>性別<select id="policySex"><option value="F">女</option><option value="M">男</option></select></label>
             <label>繳費年期<select id="policyPay"><option value="2">2 年期（年繳）</option><option value="1">躉繳</option></select></label>
             <label>輸入方式<select id="policyMode"><option value="amt">以保額計算保費</option><option value="prem" selected>以保費推算保額</option></select></label>
-            <label>投保金額（萬美元）<input id="policyAmount" type="number" step="0.1" value="25.2"></label>
-            <label>每期保費（美元）<input id="policyPremium" type="number" step="1" value="64498"></label>
+            <label>投保金額（萬美元）<input id="policyAmount" type="text" inputmode="decimal" value="25.19"></label>
+            <label>每期保費（美元）<input id="policyPremium" data-group type="text" inputmode="decimal" value="64,498"></label>
             <label>紅利情境<select id="policyScenario"><option value="M">中分紅（建議書預設，預估）</option><option value="L">低分紅（預估）</option><option value="G">保證（不含紅利）</option></select></label>
-            <label>美元匯率（USD/TWD）<input id="policyFx" type="number" value="32" step="0.01"></label>
+            <label>美元匯率（USD/TWD）<input id="policyFx" type="text" inputmode="decimal" value="32"></label>
             <label>顯示幣別<select id="policyUnit"><option value="TWD">台幣</option><option value="USD">美元</option></select></label>
           </div>
           <div class="two">
-            <label>比較房貸本金（萬台幣）<input id="policyLoan" type="number" value="1000"></label>
-            <label>利率（%）<input id="policyRate" type="number" step="0.01" value="2.6"></label>
-            <label>年期（年）<input id="policyYears" type="number" value="30"></label>
-            <label>寬限期（年）<input id="policyGrace" type="number" value="0"></label>
+            <label>比較房貸本金（萬台幣）<input id="policyLoan" data-group type="text" inputmode="decimal" value="1,000"></label>
+            <label>利率（%）<input id="policyRate" type="text" inputmode="decimal" value="2.6"></label>
+            <label>年期（年）<input id="policyYears" type="text" inputmode="numeric" value="30"></label>
+            <label>寬限期（年）<input id="policyGrace" type="text" inputmode="numeric" value="0"></label>
           </div>
           <p id="policyInfo" class="demo"></p>
-          <p id="policyHit"></p>
+          <p id="policyHit" class="callout" hidden></p>
           <div class="chart" id="policyChart"></div>
           <div class="scroll"><table id="policyTable"></table></div>
           <p class="demo" id="policySource"></p>
@@ -102,10 +108,10 @@
           <header><h2>第 15、16 年手動對照</h2><span class="tag">〔請改建議書數字〕</span></header>
           <p class="warn">預設是講者舉例：貸款 1,000 萬、利率 2.6%、30 年；分紅保費 2,063,949 元 × 2 年期。保單現金價值不保證，請改成建議書上的數字。</p>
           <div class="two">
-            <label>第 15 年末保價金（元）<input id="cash15" type="number" value="5762435"></label>
-            <label>第 16 年末保價金（元）<input id="cash16" type="number" value="5960959"></label>
-            <label>第 15 年末剩餘房貸（元）<input id="loan15" type="number" value="5961811"></label>
-            <label>第 16 年末剩餘房貸（元）<input id="loan16" type="number" value="5632505"></label>
+            <label>第 15 年末保價金（元）<input id="cash15" data-group type="text" inputmode="decimal" value="5,762,435"></label>
+            <label>第 16 年末保價金（元）<input id="cash16" data-group type="text" inputmode="decimal" value="5,960,959"></label>
+            <label>第 15 年末剩餘房貸（元）<input id="loan15" data-group type="text" inputmode="decimal" value="5,961,811"></label>
+            <label>第 16 年末剩餘房貸（元）<input id="loan16" data-group type="text" inputmode="decimal" value="5,632,505"></label>
           </div>
           <div class="scroll"><table id="manualTable"></table></div>
           <p class="demo">保價金試算達到剩餘房貸時，才進一步看能不能解約清償。解約前要確認解約金、稅務與保障變動。以正式建議書為準。</p>

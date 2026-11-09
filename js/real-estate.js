@@ -26,21 +26,47 @@ export function remainingPrincipal(monthsPaid, principal, annualPercent, years, 
   return Math.max(0, grown - paidDown);
 }
 
+function finite(value) {
+  return Number.isFinite(value);
+}
+
 export function mortgageQuote(input) {
-  const principal = Number(input.principalWan) * 10000;
+  const principalWan = Number(input.principalWan);
   const years = Number(input.years);
-  const graceYears = Number(input.graceYears) || 0;
+  const graceYears = Number(input.graceYears);
   const annualPercent = Number(input.annualPercent);
-  if (!(principal > 0) || !(years > graceYears) || !Number.isFinite(annualPercent) || annualPercent < 0) {
-    return { error: "請輸入貸款本金、利率，以及大於寬限期的年期" };
+  const monthsPaid = Number(input.monthsPaid);
+  if (![principalWan, years, graceYears, annualPercent, monthsPaid].every(finite)) {
+    return { error: "請輸入貸款本金、利率、年期、寬限期與已繳期數" };
   }
+  if (principalWan <= 0) return { error: "貸款本金要大於 0" };
+  if (annualPercent < 0 || annualPercent > 100) return { error: "貸款利率請填 0–100%" };
+  if (years <= 0) return { error: "貸款年期要大於 0" };
+  if (graceYears < 0) return { error: "寬限期不可為負" };
+  if (graceYears >= years) return { error: "寬限期要小於貸款年期。寬限期內只付息，之後才攤還本金" };
+  if (monthsPaid < 0) return { error: "已繳期數不可為負" };
+  const principal = principalWan * 10000;
   const payment = amortizingPayment(principal, annualPercent, years, graceYears);
   const interestOnly = principal * monthlyRate(annualPercent);
-  const dividend = input.monthlyDividend != null && Number.isFinite(Number(input.monthlyDividend))
-    ? Number(input.monthlyDividend)
-    : Number(input.investWan) * 10000 * Number(input.dividendPercent) / 100 / 12;
-  const monthsPaid = Number(input.monthsPaid) || 0;
+  if (payment == null || !finite(payment) || !finite(interestOnly)) return { error: "這組貸款數字無法計算，請改小年期或利率" };
+  let dividend;
+  if (input.monthlyDividend != null) {
+    dividend = Number(input.monthlyDividend);
+    if (!finite(dividend)) return { error: "基金組合的每月配息還不能用，請先修正下方組合" };
+  } else {
+    const investWan = Number(input.investWan);
+    const dividendPercent = Number(input.dividendPercent);
+    if (!finite(investWan) || !finite(dividendPercent)) return { error: "請輸入投資金額與年化配息率" };
+    if (investWan < 0) return { error: "投資金額不可為負" };
+    if (dividendPercent < 0) return { error: "年化配息率不可為負" };
+    dividend = investWan * 10000 * dividendPercent / 100 / 12;
+  }
+  if (!finite(dividend)) return { error: "配息無法計算" };
+  const totalMonths = years * 12;
+  const notes = [];
+  if (monthsPaid > totalMonths) notes.push("已繳期數超過貸款總月數，剩餘本金以 0 計算");
   const remaining = remainingPrincipal(monthsPaid, principal, annualPercent, years, graceYears);
+  if (!finite(remaining)) return { error: "剩餘本金無法計算" };
   return {
     principal,
     payment,
@@ -53,6 +79,7 @@ export function mortgageQuote(input) {
     remainingRatio: remaining / principal,
     graceYears,
     monthsPaid,
+    notes,
   };
 }
 
@@ -76,33 +103,49 @@ export function fundPayout({ allocationTwd, fx, fee, nav, dividend, periods }) {
 }
 
 export function portfolioPayout({ amountTwd, usdRate, fee, rows, funds, rates }) {
+  const amount = Number(amountTwd);
+  const feeN = Number(fee);
+  const usd = Number(usdRate);
+  const empty = { lines: [], weight: 0, monthly: 0, yieldPercent: null, notes: [] };
+  if (!finite(amount) || amount < 0) return { ...empty, error: "總投資金額要大於或等於 0" };
+  if (!finite(feeN) || feeN < 0 || feeN > 1.5) return { ...empty, error: "費用係數請填 0–1.5" };
+  if (!finite(usd) || usd <= 0) return { ...empty, error: "美元匯率要大於 0" };
+  if (!rows?.length) return { ...empty, notes: ["請新增至少一檔基金"] };
   let weight = 0;
   let monthly = 0;
+  const byCode = funds instanceof Map ? funds : new Map((funds || []).map((item) => [item.code, item]));
   const lines = rows.map((row) => {
-    const percent = Number(row.percent) || 0;
+    const percent = Number(row.percent);
+    if (!finite(percent)) return { ...row, percent: 0, missing: "請輸入比例" };
+    if (percent < 0) return { ...row, percent, missing: "比例不可為負" };
     weight += percent;
-    const fund = (funds || []).find((item) => item.code === row.code);
+    const fund = byCode.get(row.code);
     if (!fund) return { ...row, percent, missing: row.code ? "找不到基金" : "請選擇基金" };
-    const fx = fundFx(fund.currency, usdRate, rates);
-    const allocation = Number(amountTwd) * percent / 100;
+    const fx = fundFx(fund.currency, usd, rates);
+    const allocation = amount * percent / 100;
     if (!(fx > 0)) return { ...row, percent, fund, allocation, missing: `缺 ${fund.currency} 匯率` };
     const payout = fundPayout({
       allocationTwd: allocation,
       fx,
-      fee,
+      fee: feeN,
       nav: fund.nav,
       dividend: fund.dividend,
       periods: fund.periods,
     });
+    if (!payout || !finite(payout.monthly) || !finite(payout.units)) {
+      return { ...row, percent, fund, allocation, missing: "這檔淨值或配息無法計算" };
+    }
     monthly += payout.monthly;
     return { ...row, percent, fund, allocation, fx, ...payout };
   });
-  const amount = Number(amountTwd) || 0;
+  const notes = [];
+  if (Math.abs(weight - 100) >= 1e-6) notes.push(`比例合計 ${+weight.toFixed(2)}%，尚未等於 100%。合計只含已填的比例`);
   return {
     lines,
     weight,
     monthly,
     yieldPercent: amount > 0 ? monthly * 12 / amount * 100 : null,
+    notes,
   };
 }
 
@@ -125,29 +168,46 @@ export function pfkPremiumFromAmount(cell, amountWan, meta) {
 }
 
 export function pfkSchedule({ cell, scenario, amountWan, fx, unit, premiumUsd, payYears, age, loan }) {
+  const rate = Number(fx);
+  if (!finite(rate) || rate <= 0) return { error: "美元匯率要大於 0", rows: [], crossover: 0 };
+  const amount = Number(amountWan);
+  const premium = Number(premiumUsd);
+  if (!finite(amount) || amount <= 0) return { error: "保額要大於 0", rows: [], crossover: 0 };
+  if (!finite(premium) || premium < 0) return { error: "每期保費不可為負", rows: [], crossover: 0 };
+  if (!(Number(loan.principal) > 0)) return { error: "比較用的房貸本金要大於 0", rows: [], crossover: 0 };
+  if (!finite(Number(loan.annualPercent)) || Number(loan.annualPercent) < 0 || Number(loan.annualPercent) > 100) {
+    return { error: "請輸入 0–100% 的房貸利率", rows: [], crossover: 0 };
+  }
+  if (!(Number(loan.years) > Number(loan.graceYears)) || Number(loan.graceYears) < 0) {
+    return { error: "房貸年期要大於寬限期", rows: [], crossover: 0 };
+  }
   const key = scenario === "L" || scenario === "G" ? scenario : "M";
-  const scale = unit === "USD" ? 1 : Number(fx);
-  const loanScale = unit === "USD" ? Number(fx) : 1;
-  const surrender = cell[`cv${key}`];
-  const death = cell[`db${key}`];
+  const scale = unit === "USD" ? 1 : rate;
+  const loanScale = unit === "USD" ? rate : 1;
+  const surrender = cell[`cv${key}`] || [];
+  const death = cell[`db${key}`] || [];
   let crossover = 0;
-  const rows = surrender.map((value, index) => {
+  const rows = [];
+  for (let index = 0; index < surrender.length; index += 1) {
     const year = index + 1;
-    const paid = Number(premiumUsd) * Math.min(year, Number(payYears)) * scale;
-    const cash = value * Number(amountWan) * scale;
-    const cover = death[index] * Number(amountWan) * scale;
-    const balance = remainingPrincipal(year * 12, loan.principal, loan.annualPercent, loan.years, loan.graceYears) / loanScale;
-    const gap = cash - balance;
+    const balance = remainingPrincipal(year * 12, loan.principal, loan.annualPercent, loan.years, loan.graceYears);
+    if (balance == null || !finite(balance)) return { error: "房貸年期要大於寬限期", rows: [], crossover: 0 };
+    const paid = premium * Math.min(year, Number(payYears)) * scale;
+    const cash = surrender[index] * amount * scale;
+    const cover = death[index] * amount * scale;
+    const shownBalance = balance / loanScale;
+    const gap = cash - shownBalance;
+    if (![paid, cash, cover, shownBalance, gap].every(finite)) return { error: "這組數字無法換算", rows: [], crossover: 0 };
     if (!crossover && gap >= 0) crossover = year;
-    return {
+    rows.push({
       year,
       age: Math.round(Number(age)) + year - 1,
       paid,
       cash,
       cover,
-      balance,
+      balance: shownBalance,
       gap,
-    };
-  });
+    });
+  }
   return { rows, crossover };
 }

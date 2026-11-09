@@ -17,6 +17,40 @@ assert.equal(Math.round(payment), 40034);
 for (const [year, balance] of [[15, 5961811], [16, 5632505], [20, 4226322]]) {
   assert.equal(Math.round(remainingPrincipal(year * 12, loan, 2.6, 30, 0)), balance);
 }
+const brief = mortgageQuote({
+  principalWan: 1000,
+  annualPercent: 2.6,
+  years: 30,
+  graceYears: 0,
+  investWan: 600,
+  dividendPercent: 10.68,
+  monthsPaid: 192,
+});
+assert.equal(Math.round(brief.payment), 40034);
+assert.equal(Math.round(brief.dividend), 53400);
+assert.equal(Math.round(brief.paymentGap), 13366);
+assert.equal(Math.round(brief.remaining), 5632505);
+assert.equal(Math.round(mortgageQuote({ ...brief && {
+  principalWan: 1000, annualPercent: 2.6, years: 30, graceYears: 0, investWan: 600, dividendPercent: 10.68, monthsPaid: 180,
+} }).remaining), 5961811);
+
+for (const [input, text] of [
+  [{ principalWan: NaN, annualPercent: 2.6, years: 30, graceYears: 0, investWan: 0, dividendPercent: 0, monthsPaid: 0 }, "請輸入"],
+  [{ principalWan: 0, annualPercent: 2.6, years: 30, graceYears: 0, investWan: 0, dividendPercent: 0, monthsPaid: 0 }, "大於 0"],
+  [{ principalWan: -1, annualPercent: 2.6, years: 30, graceYears: 0, investWan: 0, dividendPercent: 0, monthsPaid: 0 }, "大於 0"],
+  [{ principalWan: 1000, annualPercent: 2.6, years: 30, graceYears: 30, investWan: 0, dividendPercent: 0, monthsPaid: 0 }, "寬限期"],
+  [{ principalWan: 1000, annualPercent: 2.6, years: 30, graceYears: -1, investWan: 0, dividendPercent: 0, monthsPaid: 0 }, "不可為負"],
+  [{ principalWan: 1000, annualPercent: 2.6, years: 30, graceYears: 0, investWan: 0, dividendPercent: 0, monthsPaid: -5 }, "已繳期數"],
+]) {
+  const result = mortgageQuote(input);
+  assert.match(result.error, new RegExp(text));
+  assert.equal(Object.values(result).some((value) => value === Infinity || Number.isNaN(value)), false);
+}
+const past = mortgageQuote({
+  principalWan: 1000, annualPercent: 2.6, years: 30, graceYears: 0, investWan: 0, dividendPercent: 0, monthsPaid: 999,
+});
+assert.equal(past.remaining, 0);
+assert.match(past.notes.join(""), /超過/);
 
 const quote = mortgageQuote({
   principalWan: 800,
@@ -59,6 +93,25 @@ assert.equal(Math.round(portfolio.monthly), 71987);
 assert.equal(portfolio.lines[0].units.toFixed(2), "2501.05");
 const one = fundPayout({ allocationTwd: 3000000, fx: 32, fee: 0.95, nav: 35.61, dividend: 0.59, periods: 12 });
 assert.equal(Math.round(one.monthly), 47220);
+const badWeight = portfolioPayout({
+  amountTwd: 6000000, usdRate: 32, fee: 0.95,
+  rows: [{ code: "NGB2", percent: 40 }],
+  funds: funds.funds, rates: funds.rates,
+});
+assert.match(badWeight.notes.join(""), /100/);
+assert.equal(Number.isFinite(badWeight.monthly), true);
+const negative = portfolioPayout({
+  amountTwd: -1, usdRate: 0, fee: -1,
+  rows: [],
+  funds: funds.funds, rates: funds.rates,
+});
+assert.match(negative.error, /總投資金額/);
+assert.equal(negative.monthly, 0);
+const cleared = portfolioPayout({
+  amountTwd: 6000000, usdRate: 32, fee: 0.95, rows: [], funds: funds.funds, rates: funds.rates,
+});
+assert.equal(cleared.monthly, 0);
+assert.match(cleared.notes.join(""), /至少一檔/);
 
 const pfk = JSON.parse(fs.readFileSync("data/real-estate/pfk.json", "utf8"));
 const cell = pfkCell(pfk.grid, "F", 2, 60);
@@ -66,6 +119,12 @@ const premium = Math.round(2063949 / 32);
 const amount = pfkAmountFromPremium(cell, premium, pfk.meta);
 assert.equal(premium, 64498);
 assert.equal(amount, 25.19);
+const badRate = pfkSchedule({
+  cell, scenario: "M", amountWan: amount, fx: 0, unit: "USD", premiumUsd: premium, payYears: 2, age: 60,
+  loan: { principal: loan, annualPercent: 2.6, years: 30, graceYears: 0 },
+});
+assert.match(badRate.error, /匯率/);
+assert.equal(badRate.rows.length, 0);
 const schedule = pfkSchedule({
   cell,
   scenario: "M",
