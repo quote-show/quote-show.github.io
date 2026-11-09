@@ -429,6 +429,7 @@ function handDiscount(rule, term, sum, m1, m2) {
 
 function rawPremium(product, sum, rate) {
   if (product.premRound === "tenth-down") return Math.floor(Math.round(sum * rate * 10) / 10);
+  if (product.premRound === "usd-floor") return Math.floor(roundHalfUp(sum * rate * 10) / 10 + 1e-9);
   if (product.premRound === "down") return Math.floor(Math.round(sum * rate * 1e6) / 1e6);
   return roundHalfUp(sum * rate);
 }
