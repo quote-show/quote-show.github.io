@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>房產活化試算｜藝世錄報價工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/quote.css?v=3">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="../index.html"><img src="/assets/logo.webp" alt="">藝世錄報價工具</a>
+    <nav>
+      <a href="../index.html">首頁</a>
+      <a href="../protection.html">保障型</a>
+      <a href="../savings.html">儲蓄型</a>
+      <a href="../compare.html">比較</a>
+      <a href="./" aria-current="page">房產</a>
+    </nav>
+  </header>
+  <main class="sheet">
+    <section class="family-card">
+      <header class="family-head">
+        <div class="family-brand">
+          <span class="badge"><img src="/assets/logo.webp" alt=""></span>
+          <h1>房產活化試算</h1>
+        </div>
+        <p class="rule" aria-hidden="true"><span></span></p>
+      </header>
+      <div class="family-body estate">
+        <p class="warn"><b>配息不保證、紅利不保證。</b>本頁是舉例試算，不是投資建議，也不承諾報酬。實際保費、核保、解約金與給付以公司正式建議書及保單條款為準；房貸以銀行核貸條件為準。</p>
+
+        <section class="panel">
+          <header><h2>房貸與配息試算</h2><span class="tag">〔舉例〕</span></header>
+          <p class="demo">假設利率全期固定。寬限期只付息，之後剩餘年限攤還本息。</p>
+          <div class="two">
+            <label>貸款本金（萬）<input id="loanPrincipal" type="number" value="800"></label>
+            <label>貸款利率（%）<input id="loanRate" type="number" value="2.6" step="0.01"></label>
+            <label>貸款年期（年）<input id="loanYears" type="number" value="30"></label>
+            <label>寬限期（年，無則 0）<input id="loanGrace" type="number" value="3"></label>
+            <label>投資金額（萬）<input id="investWan" type="number" value="300"></label>
+            <label>年化配息率（%，參考）<input id="dividendRate" type="number" value="10.68" step="0.01"></label>
+            <label>已繳期數（月）<input id="monthsPaid" type="number" value="180"></label>
+          </div>
+          <p class="check"><input id="usePortfolio" type="checkbox">用下方基金組合的每月配息合計，取代上面的配息率</p>
+          <p id="portfolioNote" class="demo"></p>
+          <p class="error" id="loanError" hidden></p>
+          <div class="scroll"><table id="loanTable"></table></div>
+          <p class="demo">缺口為負數，代表配息不足以支付房貸月付金。配息不保證。</p>
+        </section>
+
+        <section class="panel">
+          <header><h2>配息基金投資組合</h2><span class="tag">〔非保證〕</span></header>
+          <p class="warn">配息不保證。基金淨值與配息會變動，過去配息不代表未來表現。匯差、轉換費與稅費未計入。這不是投資建議。</p>
+          <div class="two">
+            <label>總投資金額（台幣）<input id="fundAmount" type="number" value="6000000"></label>
+            <label>美元匯率（USD/TWD）<input id="usdRate" type="number" value="32" step="0.01"></label>
+            <label>費用係數（金額 × 係數）<input id="fundFee" type="number" value="0.95" step="0.01"></label>
+          </div>
+          <div id="fundRows"></div>
+          <p class="actions"><button type="button" class="gold" id="fundAdd">新增基金</button><button type="button" class="ghost" id="fundEven">平均分配</button><span id="fundWeight"></span></p>
+          <div class="scroll"><table id="fundTable"></table></div>
+          <p class="demo" id="fundSource"></p>
+          <p class="demo">公式：分配金額＝總投資金額 × 比例。外幣基金先換成該幣別。單位數＝金額 × 係數 ÷ 淨值。每月配息＝單位數 × 每單位配息 × 年配息次數 ÷ 12（季配、半年配、年配以月平均顯示），再換回台幣。美元用上方匯率，其他幣別用臺灣銀行即期買賣中價。</p>
+        </section>
+
+        <section class="panel">
+          <header><h2>分紅保單（PFK）逐年</h2><span class="tag">〔試算〕</span></header>
+          <p class="warn">保單紅利不保證。數值由 PFK 建議書試算檔依保額線性換算（中、低分紅為預估，保證欄不含紅利），與正式建議書可能有差異。美元保單換成台幣另有匯率風險。以正式建議書為準。</p>
+          <p class="actions">
+            <button type="button" class="gold" id="policyPresetTalk">套用簡報案例（60 歲女・2 年期）</button>
+            <button type="button" class="ghost" id="policyPresetSheet">套用建議書原值（28 歲男・躉繳）</button>
+          </p>
+          <div class="two">
+            <label>客戶保險年齡<input id="policyAge" type="number" min="0" max="80" value="60"></label>
+            <label>性別<select id="policySex"><option value="F">女</option><option value="M">男</option></select></label>
+            <label>繳費年期<select id="policyPay"><option value="2">2 年期（年繳）</option><option value="1">躉繳</option></select></label>
+            <label>輸入方式<select id="policyMode"><option value="amt">以保額計算保費</option><option value="prem" selected>以保費推算保額</option></select></label>
+            <label>投保金額（萬美元）<input id="policyAmount" type="number" step="0.1" value="25.2"></label>
+            <label>每期保費（美元）<input id="policyPremium" type="number" step="1" value="64498"></label>
+            <label>紅利情境<select id="policyScenario"><option value="M">中分紅（建議書預設，預估）</option><option value="L">低分紅（預估）</option><option value="G">保證（不含紅利）</option></select></label>
+            <label>美元匯率（USD/TWD）<input id="policyFx" type="number" value="32" step="0.01"></label>
+            <label>顯示幣別<select id="policyUnit"><option value="TWD">台幣</option><option value="USD">美元</option></select></label>
+          </div>
+          <div class="two">
+            <label>比較房貸本金（萬台幣）<input id="policyLoan" type="number" value="1000"></label>
+            <label>利率（%）<input id="policyRate" type="number" step="0.01" value="2.6"></label>
+            <label>年期（年）<input id="policyYears" type="number" value="30"></label>
+            <label>寬限期（年）<input id="policyGrace" type="number" value="0"></label>
+          </div>
+          <p id="policyInfo" class="demo"></p>
+          <p id="policyHit"></p>
+          <div class="chart" id="policyChart"></div>
+          <div class="scroll"><table id="policyTable"></table></div>
+          <p class="demo" id="policySource"></p>
+        </section>
+
+        <section class="panel">
+          <header><h2>第 15、16 年手動對照</h2><span class="tag">〔請改建議書數字〕</span></header>
+          <p class="warn">預設是講者舉例：貸款 1,000 萬、利率 2.6%、30 年；分紅保費 2,063,949 元 × 2 年期。保單現金價值不保證，請改成建議書上的數字。</p>
+          <div class="two">
+            <label>第 15 年末保價金（元）<input id="cash15" type="number" value="5762435"></label>
+            <label>第 16 年末保價金（元）<input id="cash16" type="number" value="5960959"></label>
+            <label>第 15 年末剩餘房貸（元）<input id="loan15" type="number" value="5961811"></label>
+            <label>第 16 年末剩餘房貸（元）<input id="loan16" type="number" value="5632505"></label>
+          </div>
+          <div class="scroll"><table id="manualTable"></table></div>
+          <p class="demo">保價金試算達到剩餘房貸時，才進一步看能不能解約清償。解約前要確認解約金、稅務與保障變動。以正式建議書為準。</p>
+          <h3>講者舉例：逐年對照</h3>
+          <div class="scroll"><table>
+            <tr><th>年</th><th>本金餘額</th><th>保單現金價值</th><th>貸款 − 現價</th></tr>
+            <tr><td>1</td><td>9,776,947</td><td>1,100,190</td><td></td></tr>
+            <tr><td>2</td><td>9,548,025</td><td>2,598,110</td><td></td></tr>
+            <tr><td>5</td><td>8,824,479</td><td>3,800,569</td><td></td></tr>
+            <tr><td>6</td><td>8,570,496</td><td>4,170,244</td><td>4,400,252</td></tr>
+            <tr><td>10</td><td>7,485,951</td><td>4,842,975</td><td>2,642,976</td></tr>
+            <tr><td>14</td><td>6,282,675</td><td>5,569,057</td><td>713,618</td></tr>
+            <tr class="hl"><td>15</td><td>5,961,811</td><td>5,762,435</td><td>199,376</td></tr>
+            <tr class="hl"><td>16</td><td>5,632,505</td><td>5,960,959</td><td class="down">-328,454</td></tr>
+            <tr><td>17</td><td>5,294,534</td><td>6,165,931</td><td class="down">-871,397</td></tr>
+            <tr><td>20</td><td>4,226,322</td><td>6,810,793</td><td class="down">-2,584,471</td></tr>
+          </table></div>
+          <p class="demo">同一份舉例另載：分紅保單身故領回 9,456,488 元；第 16 年起投資 600 萬、每年配息 639,163 元。都是舉例，配息與紅利不保證。</p>
+        </section>
+
+        <section class="panel">
+          <header><h2>沒規劃 vs 有規劃</h2><span class="tag">〔舉例〕</span></header>
+          <div class="vs">
+            <article class="story">
+              <h3>沒規劃的例子</h3>
+              <p>22 歲出社會，月領 40,000。30 歲存到 240 萬頭期款、月領 60,000，買 1,200 萬物件、貸款 1,000 萬。</p>
+              <p>之後 30 年每月自己付 40,000 房貸。60 歲還完，物件若增值到 2,400 萬，淨值多了 1,200 萬，生活現金仍要另備。</p>
+            </article>
+            <article class="plan">
+              <h3>有規劃的舉例</h3>
+              <p>同樣是 1,000 萬房貸、利率 2.6%、30 年。舉例用配息支付月付金，自己負擔的房貸現金流試算為 0。這不是保證。</p>
+              <p>舉例月配 53,264、房貸 40,034，付完多出 13,230。第 16 年末 PFK 解約金舉例 5,960,959，剩餘房貸 5,632,505。之後每年配息舉例 639,163。</p>
+            </article>
+          </div>
+          <div class="scroll"><table>
+            <tr><th>項目</th><th>沒規劃</th><th>有規劃（舉例）</th></tr>
+            <tr><td>起點</td><td>22 歲出社會，月薪 40,000；30 歲存 240 萬頭期款，月薪 60,000</td><td>房子貸款 1,000 萬，利率 2.6%，30 年</td></tr>
+            <tr><td>房貸</td><td>買 1,200 萬物件、貸款 1,000 萬，30 年每月付 40,000</td><td>每月本利攤還 40,034（舉例由配息支付）</td></tr>
+            <tr><td>每月現金流</td><td>薪水扣房貸，自己負擔</td><td>投資 600 萬月配 53,264，付房貸後剩 13,230</td></tr>
+            <tr><td>分紅保單</td><td>—</td><td>分紅保費 2,063,949 元，2 年繳</td></tr>
+            <tr><td>第 15 年末</td><td>持續繳房貸</td><td>本金餘額 5,961,811，保價 5,762,435（尚不足）</td></tr>
+            <tr><td>第 16 年末</td><td>持續繳房貸</td><td>本金餘額 5,632,505，保價 5,960,959（舉例可清償）</td></tr>
+            <tr><td>第 20 年末</td><td>持續繳房貸</td><td>本金餘額 4,226,322，保價 6,810,793</td></tr>
+            <tr><td>結局</td><td>60 歲繳完，有房，退休現金要另備</td><td>約第 16 年的舉例可清償房貸；第 16 年起每年配息 639,163</td></tr>
+          </table></div>
+          <p class="demo">以上是講者舉例。配息不保證，紅利不保證，不是投資建議，也不代表未來報酬。實際以正式建議書、保單條款與銀行核貸為準。</p>
+        </section>
+      </div>
+      <footer class="foot">
+        <span>個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準</span>
+        <strong data-version>DEMO-0</strong>
+      </footer>
+    </section>
+  </main>
+  <script type="module" src="/js/app-real-estate.js"></script>
+</body>
+</html>
