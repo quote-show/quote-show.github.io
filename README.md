@@ -1,4 +1,4 @@
-# 藝世錄報價工具
+# 報價工具
 
 Show 的個人保險快速試算站。純靜態檔案，GitHub Pages 從 `main` 的根目錄發布：<https://quote-show.github.io/>
 
@@ -21,7 +21,7 @@ Show 的個人保險快速試算站。純靜態檔案，GitHub Pages 從 `main` 
 | `savings.html` | 儲蓄型：快速選商品、生存金領回、逐年解約金與身故給付 |
 | `data/savings-index.json` | 儲蓄型篩選用目錄（幣別、年期、有無生存金），由各商品 JSON 整理 |
 | `compare.html` | 儲蓄型並排，最多三欄 |
-| `css/quote.css` | 藝世錄配色與手機卡片 |
+| `css/quote.css` | 配色與手機卡片 |
 | `js/engine.js` | 保險年齡、內部報酬率 |
 | `js/calc.js` | 保障型保費與儲蓄型逐年表 |
 | `data/products.json` | 目錄 |

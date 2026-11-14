@@ -20,7 +20,7 @@ assert.match(estate, /房產活化試算/);
 assert.match(estate, /個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準/);
 
 const protection = fs.readFileSync("protection.html", "utf8");
-assert.match(protection, /<title>保障型｜藝世錄報價工具<\/title>/);
+assert.match(protection, /<title>保障型｜報價工具<\/title>/);
 assert.match(protection, /<h1>保障型<\/h1>/);
 assert.match(protection, /id="find"/);
 assert.match(protection, /id="job"/);

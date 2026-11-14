@@ -20,7 +20,7 @@ if (!code) {
   try {
     const item = await loadJson(`data/explain/${code}.json`);
     title.textContent = item.name;
-    document.title = `${item.name}｜藝世錄報價工具`;
+    document.title = `${item.name}｜報價工具`;
     const points = (item.points || []).map((line) => `<li>${line}</li>`).join("");
     const cards = (item.cards || []).map((card) => `<section class="panel"><header><h2>${card.title}</h2></header><p class="money">${card.amount}</p><p>${card.line}</p><p class="tag">${card.note}</p></section>`).join("");
     const sources = (item.sources || []).map((line) => `<li>${line}</li>`).join("");
