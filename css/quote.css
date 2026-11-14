@@ -106,7 +106,7 @@ button, input, select { font: inherit; color: var(--ink); }
   width: min(300px, 86%);
   aspect-ratio: 1;
   transform: translateX(-50%);
-  background: url("/assets/logo.webp") center / contain no-repeat;
+  background: url("/assets/logo.webp?v=2") center / contain no-repeat;
   opacity: 0.14;
   mix-blend-mode: multiply;
   pointer-events: none;
