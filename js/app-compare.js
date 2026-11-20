@@ -89,10 +89,14 @@ function sumFor(product, age) {
   return sum;
 }
 
+let generation = 0;
+
 async function compare() {
+  const token = ++generation;
   const error = document.querySelector("#error");
   error.hidden = true;
   const who = person();
+  if (token !== generation) return;
   if (who.error) {
     error.hidden = false;
     error.textContent = who.error;
@@ -101,6 +105,7 @@ async function compare() {
   const picked = [0, 1, 2].map((index) => document.querySelector(`#p${index}`).value).filter(Boolean);
   const results = [];
   for (const code of picked) {
+    if (token !== generation) return;
     const preview = await fileOf(code);
     const term = termFor(preview, who.age);
     if (!allowedSex(preview, who.sex) || term == null) {
@@ -131,6 +136,7 @@ async function compare() {
       else results.push({ item: preview, missing: true, detail: text });
     }
   }
+  if (token !== generation) return;
   [0, 1, 2].forEach((index) => {
     const entry = results[index];
     const head = document.querySelector(`#h${index}`);
