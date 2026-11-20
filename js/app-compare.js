@@ -6,6 +6,22 @@ const catalog = await loadJson("data/products.json");
 const index = await loadJson("data/savings-index.json");
 fillVersion(catalog);
 const savings = catalog.products.filter((item) => item.type === "savings");
+const slotCount = 4;
+const byCode = new Map(index.map((item) => [item.code, item]));
+
+function termList(code) {
+  const info = byCode.get(code);
+  if (!info) return "";
+  return (info.bands || []).map((band) => info.payToAge ? `繳至${band.term}歲` : (Number(band.term) === 1 ? "躉繳" : `${band.term}年期`)).join("、");
+}
+
+function currencyName(code) {
+  const currency = byCode.get(code)?.currency;
+  if (currency === "TWD") return "台幣";
+  if (currency === "AUD") return "AUD";
+  if (currency === "USD") return "USD";
+  return currency || "";
+}
 const metas = new Map();
 const cache = new Map();
 async function metaOf(code) {
@@ -65,29 +81,74 @@ function matches(item, query) {
   return item.code.toLowerCase().includes(text) || item.name.toLowerCase().includes(text);
 }
 
-function fillSlots() {
-  const query = document.querySelector("#find").value;
-  [0, 1, 2].forEach((index) => {
-    const select = document.querySelector(`#p${index}`);
-    const selected = select?.value || (index === 0 ? savings[0]?.code : index === 1 ? savings[1]?.code : "");
-    const matched = savings.filter((item) => matches(item, query));
-    const chosen = savings.find((item) => item.code === selected);
-    const list = chosen && !matched.some((item) => item.code === chosen.code) ? [chosen, ...matched] : matched;
-    const empty = index === 2 ? `<option value="">不比較</option>` : "";
-    const body = list.map((item) => `<option value="${item.code}">${item.code} ${item.name}</option>`).join("");
-    const none = list.length ? "" : `<option value="" disabled>沒有符合的商品</option>`;
-    if (!select) return;
-    select.innerHTML = empty + body + none;
-    if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+function slotValues(next) {
+  if (next) return next;
+  const selects = [...document.querySelectorAll("#slots select")];
+  if (!selects.length) return [savings[0]?.code || "", savings[1]?.code || "", "", ""];
+  return selects.map((select, index) => {
+    if (select.value) return select.value;
+    if (select.options.length) return "";
+    if (index === 0) return savings[0]?.code || "";
+    if (index === 1) return savings[1]?.code || "";
+    return "";
   });
 }
 
-document.querySelector("#slots").innerHTML = [0, 1, 2].map((index) => `
+function fillSlots(next) {
+  const query = document.querySelector("#find").value;
+  const values = slotValues(next);
+  const matched = savings.filter((item) => matches(item, query));
+  [...document.querySelectorAll("#slots select")].forEach((select, index) => {
+    const selected = values[index] || "";
+    const chosen = savings.find((item) => item.code === selected);
+    const list = chosen && !matched.some((item) => item.code === chosen.code) ? [chosen, ...matched] : matched;
+    const empty = index === 0 ? "" : `<option value="">不比較</option>`;
+    const body = list.map((item) => `<option value="${item.code}">${item.code} ${item.name}</option>`).join("");
+    const none = list.length ? "" : `<option value="" disabled>沒有符合的商品</option>`;
+    select.innerHTML = empty + body + none;
+    if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+  });
+  renderList();
+}
+
+function renderList() {
+  const query = document.querySelector("#find").value;
+  const picked = new Set(slotValues().filter(Boolean));
+  const rows = savings.filter((item) => matches(item, query));
+  document.querySelector("#count").textContent = `${rows.length} / ${savings.length} 檔`;
+  const list = document.querySelector("#all");
+  list.innerHTML = rows.map((item) => `<button type="button" class="entry" data-code="${item.code}" aria-pressed="${picked.has(item.code)}"><strong>${item.code}</strong> ${item.name}<p>${currencyName(item.code)} · ${termList(item.code)}</p></button>`).join("") || `<p class="demo">沒有符合的商品</p>`;
+}
+
+document.querySelector("#slots").innerHTML = Array.from({ length: slotCount }, (_, index) => `
   <div>
-    <label for="p${index}">第 ${index + 1} 欄</label>
+    <label for="p${index}">第 ${index + 1} 檔</label>
     <select id="p${index}"></select>
   </div>`).join("");
 fillSlots();
+
+document.querySelector("#all").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-code]");
+  if (!button) return;
+  const code = button.dataset.code;
+  const values = slotValues();
+  if (values.includes(code)) {
+    const index = values.indexOf(code);
+    if (index > 0) values[index] = "";
+    fillSlots(values);
+    return;
+  }
+  const empty = values.findIndex((value) => !value);
+  const error = document.querySelector("#error");
+  if (empty < 0) {
+    error.hidden = false;
+    error.textContent = "最多同時比較 4 檔";
+    return;
+  }
+  error.hidden = true;
+  values[empty] = code;
+  fillSlots(values);
+});
 
 function person() {
   const text = String(document.querySelector("#age").value).trim();
@@ -167,7 +228,7 @@ async function compare() {
     error.textContent = budget.error;
     return;
   }
-  const picked = [0, 1, 2].map((index) => document.querySelector(`#p${index}`).value).filter(Boolean);
+  const picked = Array.from({ length: slotCount }, (_, index) => document.querySelector(`#p${index}`).value).filter(Boolean);
   const chosen = chosenTerm();
   const results = [];
   for (const code of picked) {
@@ -231,18 +292,20 @@ async function compare() {
     }
   }
   if (token !== generation) return;
-  [0, 1, 2].forEach((index) => {
-    const entry = results[index];
-    const head = document.querySelector(`#h${index}`);
-    head.replaceChildren();
-    if (!entry) return;
+  const heads = document.querySelector("#heads");
+  heads.replaceChildren();
+  const headRow = document.createElement("tr");
+  headRow.append(document.createElement("th"));
+  results.forEach((entry) => {
+    const head = document.createElement("th");
     head.title = entry.item.name;
     head.append(document.createTextNode(entry.item.code), document.createElement("br"), document.createTextNode(termText(entry)));
+    headRow.append(head);
   });
+  heads.append(headRow);
   const cell = (entry, read) => `<td>${shown(entry, read)}</td>`;
-  const pad = "<td></td>".repeat(Math.max(0, 3 - results.length));
-  const row = (label, read) => `<tr><td>${label}</td>${results.map((item) => cell(item, read)).join("")}${pad}</tr>`;
-  const termRow = `<tr><td>繳費年期</td>${results.map((item) => `<td>${termText(item)}</td>`).join("")}${pad}</tr>`;
+  const row = (label, read) => `<tr><td>${label}</td>${results.map((item) => cell(item, read)).join("")}</tr>`;
+  const termRow = `<tr><td>繳費年期</td>${results.map((item) => `<td>${termText(item)}</td>`).join("")}</tr>`;
   document.querySelector("#body").innerHTML = [
     termRow,
     row("保額", (entry) => faceText(entry.sum)),
@@ -256,6 +319,16 @@ async function compare() {
       return year?.cum ? (year.W / year.cum).toFixed(2) : "無資料";
     }),
   ].join("");
+  document.querySelector("#cards").innerHTML = results.map((entry) => {
+    const line = (label, read) => `${label} ${shown(entry, read)}`;
+    return `<article class="entry"><h2>${entry.item.code} ${termText(entry)}</h2><p>${[
+      line("保額", (item) => faceText(item.sum)),
+      line("首期", (item) => money(item.result.payable, item.item.currency)),
+      line("第5年解約", (item) => surrender(item, 5)),
+      line("第10年解約", (item) => surrender(item, 10)),
+      line("第15年解約", (item) => surrender(item, 15)),
+    ].join("<br>")}</p></article>`;
+  }).join("");
   document.querySelector("#out").hidden = false;
   watchTables();
 }

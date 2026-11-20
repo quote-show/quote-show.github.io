@@ -186,6 +186,18 @@ button, input, select { font: inherit; color: var(--ink); }
 
 .entry p { margin-top: 4px; color: var(--muted); font-size: 0.92rem; }
 
+button.entry { width: 100%; text-align: left; cursor: pointer; }
+button.entry[aria-pressed="true"] { border-color: var(--gold); background: #f3e6cf; }
+
+.catalog {
+  max-height: 280px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
 .demo {
   color: var(--gold-ink);
   font-size: 0.82rem;

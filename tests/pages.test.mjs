@@ -57,6 +57,10 @@ assert.match(compare, /id="premium"/);
 assert.match(compare, /id="currency"/);
 assert.match(compare, /id="term"/);
 assert.match(compare, /繳費年期/);
+assert.match(compare, /全部商品/);
+assert.match(compare, /id="all"/);
+assert.match(compare, /最多四檔/);
+assert.match(compareScript, /slotCount = 4/);
 assert.match(compareScript, /無此年期/);
 assert.match(compareScript, /sameTerm/);
 
