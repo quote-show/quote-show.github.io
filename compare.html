@@ -33,7 +33,23 @@
         <p class="tag" id="sourceNote"></p>
         <section class="panel">
           <header><h2>並排</h2><span class="tag">〔最多三欄〕</span></header>
+          <label for="find">搜尋代號或名稱</label>
+          <input id="find" type="search" inputmode="search" placeholder="例如 FAK、美滿" autocomplete="off">
+          <div class="two">
+            <div>
+              <label for="age">年齡</label>
+              <input id="age" type="text" inputmode="numeric" value="30" autocomplete="off">
+            </div>
+            <div>
+              <label for="sex">性別</label>
+              <select id="sex">
+                <option value="1">男</option>
+                <option value="2">女</option>
+              </select>
+            </div>
+          </div>
           <div class="grid" id="slots"></div>
+          <p class="demo">依這個保險年齡與性別重算。沒有該年齡或性別費率的商品會標示，不會改用別的條件計算。紅利與宣告利率非保證。</p>
           <p><button class="gold" id="run" type="button">比較</button></p>
           <p class="error" id="error" hidden></p>
         </section>

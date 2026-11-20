@@ -36,6 +36,19 @@ assert.match(redirect, /protection\.html/);
 assert.match(redirect, /location\.search/);
 assert.match(redirect, /noindex,nofollow/);
 
+const compare = fs.readFileSync("compare.html", "utf8");
+assert.match(compare, /<title>儲蓄型比較｜報價工具<\/title>/);
+assert.match(compare, /id="find"/);
+assert.match(compare, /id="age"/);
+assert.match(compare, /id="sex"/);
+assert.match(compare, /個人試算工具，實際保費、核保與給付以公司正式建議書及保單條款為準/);
+assert.doesNotMatch(compare, /<img/);
+
+const compareScript = fs.readFileSync("js/app-compare.js", "utf8");
+assert.match(compareScript, /toLowerCase\(\)\.includes/);
+assert.match(compareScript, /無此年齡\/性別資料/);
+assert.match(compareScript, /item\.name\.toLowerCase\(\)\.includes/);
+
 const script = fs.readFileSync("js/app-protection.js", "utf8");
 assert.match(script, /quoteProduct/);
 assert.match(script, /quoteBundle/);
