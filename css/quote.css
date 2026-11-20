@@ -200,6 +200,11 @@ button.entry[aria-pressed="true"] { border-color: var(--gold); background: #f3e6
 
 .catalog button[hidden] { display: none; }
 
+.slot { border-radius: 12px; }
+.slot .mark { visibility: hidden; color: var(--gold-ink); font-weight: 600; }
+.slot.is-current { box-shadow: inset 0 0 0 2px var(--gold); }
+.slot.is-current .mark { visibility: visible; }
+
 .demo {
   color: var(--gold-ink);
   font-size: 0.82rem;

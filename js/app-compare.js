@@ -102,18 +102,47 @@ function applyQuery() {
   document.querySelector("#count").textContent = `${shown} / ${savings.length} 檔`;
 }
 
+let activeSlot = 0;
+
+function setActive(index) {
+  activeSlot = index;
+  document.querySelectorAll("#slots .slot").forEach((node, slot) => {
+    node.classList.toggle("is-current", slot === index);
+  });
+}
+
+function refreshAfterPick() {
+  markPicked();
+  if (!document.querySelector("#out").hidden) rerun();
+}
+
 document.querySelector("#slots").innerHTML = Array.from({ length: slotCount }, (_, index) => `
-  <div>
-    <label for="p${index}">第 ${index + 1} 檔</label>
+  <div class="slot" data-index="${index}">
+    <label for="p${index}">第 ${index + 1} 檔 <span class="mark">選取中</span></label>
     <select id="p${index}"></select>
   </div>`).join("");
-const optionHtml = savings.map((item) => `<option value="${item.code}">${item.code} ${item.name}</option>`).join("");
+const optionHtml = `<option value="">不比較</option>${savings.map((item) => `<option value="${item.code}">${item.code} ${item.name}</option>`).join("")}`;
 selects().forEach((select, index) => {
-  select.innerHTML = `${index === 0 ? "" : `<option value="">不比較</option>`}${optionHtml}`;
+  select.innerHTML = optionHtml;
   if (index === 0) select.value = savings[0]?.code || "";
   if (index === 1) select.value = savings[1]?.code || "";
-  select.addEventListener("change", markPicked);
+  select.addEventListener("focus", () => setActive(index));
+  select.addEventListener("change", () => {
+    const code = select.value;
+    if (code) {
+      selects().forEach((other, slot) => {
+        if (slot !== index && other.value === code) other.value = "";
+      });
+    }
+    setActive(index);
+    refreshAfterPick();
+  });
 });
+document.querySelector("#slots").addEventListener("pointerdown", (event) => {
+  const slot = event.target.closest(".slot");
+  if (slot) setActive(Number(slot.dataset.index));
+});
+setActive(0);
 
 const catalogList = document.querySelector("#all");
 for (const item of savings) {
@@ -142,23 +171,12 @@ catalogList.addEventListener("click", (event) => {
   if (!button) return;
   const code = button.dataset.code;
   const fields = selects();
-  const values = fields.map((select) => select.value);
-  if (values.includes(code)) {
-    const index = values.indexOf(code);
-    if (index > 0) fields[index].value = "";
-    markPicked();
-    return;
-  }
-  const empty = values.findIndex((value) => !value);
-  const error = document.querySelector("#error");
-  if (empty < 0) {
-    error.hidden = false;
-    error.textContent = "最多同時比較 4 檔";
-    return;
-  }
-  error.hidden = true;
-  fields[empty].value = code;
-  markPicked();
+  fields.forEach((select, index) => {
+    if (index !== activeSlot && select.value === code) select.value = "";
+  });
+  fields[activeSlot].value = code;
+  document.querySelector("#error").hidden = true;
+  refreshAfterPick();
 });
 
 function person() {

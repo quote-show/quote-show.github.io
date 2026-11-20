@@ -61,6 +61,8 @@ assert.match(compare, /全部商品/);
 assert.match(compare, /id="all"/);
 assert.match(compare, /最多四檔/);
 assert.match(compareScript, /slotCount = 4/);
+assert.match(compareScript, /選取中/);
+assert.match(compareScript, /activeSlot/);
 assert.match(compareScript, /無此年期/);
 assert.match(compareScript, /sameTerm/);
 
