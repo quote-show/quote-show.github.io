@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { annualPayable, preferredSavingsMode, quoteProduct, savingsModes } from "../js/calc.js";
-import { solveFace } from "../js/compare-solve.js";
+import { sameTerm, solveFace } from "../js/compare-solve.js";
 import { loadSavings } from "./load-savings.mjs";
 
 const fak = loadSavings("data/savings/FAK1.json");
@@ -30,6 +30,11 @@ const other = solveFace(faz, {
 }, 6000);
 assert.equal(other.sum, 10.82);
 assert.equal(other.payable, 5998);
+
+assert.equal(sameTerm(fak, 6, false), true);
+assert.equal(sameTerm(fak, 8, false), false);
+assert.equal(sameTerm(faz, 8, false), true);
+assert.equal(sameTerm(fak, 6, true), false);
 
 assert.equal(solveFace(fak, input, 100).note, "保費不足最低投保額");
 assert.equal(solveFace(fak, input, 200000).note, "超過保額上限");

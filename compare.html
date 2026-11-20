@@ -48,6 +48,8 @@
               </select>
             </div>
           </div>
+          <label for="term">繳費年期</label>
+          <select id="term"></select>
           <div class="choices" id="basis">
             <label><input type="radio" name="basis" value="sum" checked> 同保額比較</label>
             <label><input type="radio" name="basis" value="premium"> 同保費比較</label>
@@ -69,7 +71,7 @@
             </div>
           </div>
           <div class="grid" id="slots"></div>
-          <p class="demo">同保額用各商品自己的試算保額。同保費用這筆年繳保費，依該年齡與性別的費率反推買得到的保額。保費買不到最低保額、超過上限，或幣別不同，會標示而不另算。沒有該年解約金就標無資料。紅利與宣告利率非保證。</p>
+          <p class="demo">所有商品用上面這個繳費年期。沒有該年期就標無此年期，不會改用別的年期。同保額用各商品自己的試算保額。同保費用這筆年繳保費，依該年齡與性別的費率反推買得到的保額。保費買不到最低保額、超過上限，或幣別不同，會標示而不另算。沒有該年解約金就標無資料。紅利與宣告利率非保證。</p>
           <p><button class="gold" id="run" type="button">比較</button></p>
           <p class="error" id="error" hidden></p>
         </section>
@@ -87,6 +89,6 @@
       </footer>
     </section>
   </main>
-  <script type="module" src="js/app-compare.js?v=7"></script>
+  <script type="module" src="js/app-compare.js?v=8"></script>
 </body>
 </html>

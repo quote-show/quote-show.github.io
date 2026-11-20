@@ -55,6 +55,10 @@ assert.match(compare, /同保額比較/);
 assert.match(compare, /同保費比較/);
 assert.match(compare, /id="premium"/);
 assert.match(compare, /id="currency"/);
+assert.match(compare, /id="term"/);
+assert.match(compare, /繳費年期/);
+assert.match(compareScript, /無此年期/);
+assert.match(compareScript, /sameTerm/);
 
 const script = fs.readFileSync("js/app-protection.js", "utf8");
 assert.match(script, /quoteProduct/);

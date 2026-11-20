@@ -1,24 +1,61 @@
 import { preferredSavingsMode, quoteProduct, savingsModes } from "./calc.js";
-import { solveFace } from "./compare-solve.js";
+import { sameTerm, solveFace } from "./compare-solve.js";
 import { fillVersion, loadJson, money, percent, watchTables } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
+const index = await loadJson("data/savings-index.json");
 fillVersion(catalog);
 const savings = catalog.products.filter((item) => item.type === "savings");
+const metas = new Map();
 const cache = new Map();
-async function fileOf(code, term) {
-  const key = `${code}|${term ?? ""}`;
-  if (cache.has(key)) return cache.get(key);
+async function metaOf(code) {
+  if (metas.has(code)) return metas.get(code);
   const meta = await loadJson(`data/savings/${code}.json`);
-  if (!meta.splitTables) {
-    cache.set(key, meta);
-    return meta;
-  }
-  const useTerm = term || Object.keys(meta.issueAges)[0];
-  const tables = await loadJson(`data/savings/${code}/${useTerm}.json`);
+  metas.set(code, meta);
+  return meta;
+}
+async function fileOf(code, term) {
+  const meta = await metaOf(code);
+  if (!meta.splitTables) return meta;
+  const key = `${code}|${term}`;
+  if (cache.has(key)) return cache.get(key);
+  const tables = await loadJson(`data/savings/${code}/${term}.json`);
   const product = { ...meta, tables };
-  cache.set(`${code}|${useTerm}`, product);
+  cache.set(key, product);
   return product;
+}
+
+function fillTerms() {
+  const select = document.querySelector("#term");
+  const previous = select.value;
+  const groups = new Map();
+  for (const item of index) {
+    for (const band of item.bands || []) {
+      const payToAge = !!item.payToAge;
+      const key = `${payToAge ? "age" : "year"}:${band.term}`;
+      if (!groups.has(key)) groups.set(key, { term: Number(band.term), payToAge });
+    }
+  }
+  const list = [...groups.values()].sort((a, b) => Number(a.payToAge) - Number(b.payToAge) || a.term - b.term);
+  select.innerHTML = list.map((item) => {
+    const label = item.payToAge ? `繳至 ${item.term} 歲` : (item.term === 1 ? "躉繳" : `${item.term} 年期`);
+    return `<option value="${item.term}" data-pay="${item.payToAge ? "age" : "year"}">${label}</option>`;
+  }).join("");
+  if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+  else if ([...select.options].some((option) => option.value === "6")) select.value = "6";
+}
+fillTerms();
+
+function chosenTerm() {
+  const select = document.querySelector("#term");
+  const option = select.selectedOptions[0];
+  return { term: Number(select.value), payToAge: option?.dataset.pay === "age" };
+}
+
+function termText(entry) {
+  if (!entry?.term) return "無此年期";
+  if (entry.payToAge) return `繳至 ${entry.term} 歲`;
+  return Number(entry.term) === 1 ? "躉繳" : `${entry.term} 年期`;
 }
 const missingLabel = "無此年齡/性別資料";
 
@@ -60,18 +97,6 @@ function person() {
   if (age > 110) return { error: "請輸入年齡" };
   if (sex !== 1 && sex !== 2) return { error: "請選擇性別" };
   return { age, sex };
-}
-
-function termFor(product, age) {
-  const ages = product.issueAges || {};
-  const fits = (term) => {
-    const band = ages[term];
-    return Array.isArray(band) && age >= Number(band[0]) && age <= Number(band[1]);
-  };
-  const sampleTerm = product.verificationSamples?.[0]?.term;
-  if (sampleTerm != null && fits(String(sampleTerm))) return Number(sampleTerm);
-  const found = Object.keys(ages).find((term) => fits(term));
-  return found == null ? null : Number(found);
 }
 
 function allowedSex(product, sex) {
@@ -143,20 +168,26 @@ async function compare() {
     return;
   }
   const picked = [0, 1, 2].map((index) => document.querySelector(`#p${index}`).value).filter(Boolean);
+  const chosen = chosenTerm();
   const results = [];
   for (const code of picked) {
     if (token !== generation) return;
-    const preview = await fileOf(code);
-    const term = termFor(preview, who.age);
-    if (!allowedSex(preview, who.sex) || term == null) {
-      results.push({ item: preview, missing: true });
+    const preview = await metaOf(code);
+    if (!sameTerm(preview, chosen.term, chosen.payToAge)) {
+      results.push({ item: preview, note: "無此年期" });
       continue;
     }
+    const band = preview.issueAges[String(chosen.term)];
+    if (!allowedSex(preview, who.sex) || who.age < Number(band[0]) || who.age > Number(band[1])) {
+      results.push({ item: preview, term: chosen.term, payToAge: chosen.payToAge, missing: true });
+      continue;
+    }
+    const term = chosen.term;
     try {
       const item = await fileOf(code, term);
       const id = `${term}|${who.sex}|${who.age}`;
       if (item.tables && item.tables.gp && item.tables.gp[id] == null && item.tables.die?.[id] == null && item.calc === "savings") {
-        results.push({ item, missing: true });
+        results.push({ item, term, payToAge: chosen.payToAge, missing: true });
         continue;
       }
       const scenario = item.verificationSamples?.[0]?.scenario ?? 2;
@@ -164,7 +195,7 @@ async function compare() {
       let sum = sumFor(item, who.age);
       if (modeName === "premium") {
         if ((item.currency || "TWD") !== budget.currency) {
-          results.push({ item, note: "幣別不同" });
+          results.push({ item, term, payToAge: chosen.payToAge, note: "幣別不同" });
           continue;
         }
         const solved = solveFace(item, {
@@ -176,7 +207,7 @@ async function compare() {
           mode,
         }, budget.premium);
         if (solved.note) {
-          results.push({ item, note: solved.note });
+          results.push({ item, term, payToAge: chosen.payToAge, note: solved.note });
           continue;
         }
         sum = solved.sum;
@@ -190,25 +221,30 @@ async function compare() {
         declaredRate: item.declDefault,
         mode,
       });
-      results.push({ item, result, sum });
+      results.push({ item, result, sum, term, payToAge: chosen.payToAge });
     } catch (reason) {
       const text = String(reason.message || "");
-      if (/年齡|性別|費率|年期/.test(text)) results.push({ item: preview, missing: true });
-      else if (/最低|上限|不足/.test(text)) results.push({ item: preview, note: text });
-      else results.push({ item: preview, missing: true, detail: text });
+      if (/年期/.test(text)) results.push({ item: preview, note: "無此年期" });
+      else if (/年齡|性別|費率/.test(text)) results.push({ item: preview, term, payToAge: chosen.payToAge, missing: true });
+      else if (/最低|上限|不足/.test(text)) results.push({ item: preview, term, payToAge: chosen.payToAge, note: text });
+      else results.push({ item: preview, term, payToAge: chosen.payToAge, missing: true, detail: text });
     }
   }
   if (token !== generation) return;
   [0, 1, 2].forEach((index) => {
     const entry = results[index];
     const head = document.querySelector(`#h${index}`);
-    head.textContent = entry ? entry.item.code : "";
-    head.title = entry ? entry.item.name : "";
+    head.replaceChildren();
+    if (!entry) return;
+    head.title = entry.item.name;
+    head.append(document.createTextNode(entry.item.code), document.createElement("br"), document.createTextNode(termText(entry)));
   });
   const cell = (entry, read) => `<td>${shown(entry, read)}</td>`;
   const pad = "<td></td>".repeat(Math.max(0, 3 - results.length));
   const row = (label, read) => `<tr><td>${label}</td>${results.map((item) => cell(item, read)).join("")}${pad}</tr>`;
+  const termRow = `<tr><td>繳費年期</td>${results.map((item) => `<td>${termText(item)}</td>`).join("")}${pad}</tr>`;
   document.querySelector("#body").innerHTML = [
+    termRow,
     row("保額", (entry) => faceText(entry.sum)),
     row("首期", (entry) => money(entry.result.payable, entry.item.currency)),
     row("第5年解約", (entry) => surrender(entry, 5)),
@@ -233,7 +269,7 @@ function rerun() {
 
 document.querySelector("#find").addEventListener("input", fillSlots);
 document.querySelector("#run").addEventListener("click", rerun);
-for (const id of ["#age", "#sex", "#premium", "#currency"]) {
+for (const id of ["#age", "#sex", "#premium", "#currency", "#term"]) {
   document.querySelector(id).addEventListener("change", () => { if (!document.querySelector("#out").hidden) rerun(); });
 }
 document.querySelector("#age").addEventListener("input", () => { if (!document.querySelector("#out").hidden) rerun(); });

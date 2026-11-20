@@ -3,6 +3,12 @@ import { annualPayable } from "./calc.js";
 const lowFace = "保費不足最低投保額";
 const highFace = "超過保額上限";
 
+export function sameTerm(product, term, payToAge) {
+  const band = product.issueAges?.[String(term)];
+  if (!Array.isArray(band)) return false;
+  return (product.payYears === "age") === !!payToAge;
+}
+
 export function faceStep(product) {
   const step = Number(product.sumInsured?.step);
   return step > 0 ? step : 0.01;
