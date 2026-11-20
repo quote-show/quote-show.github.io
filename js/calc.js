@@ -760,7 +760,7 @@ function projectInterest(product, input, id, mode, first, renewal) {
   return rows;
 }
 
-export function quoteSavings(product, input) {
+function savingsPrice(product, input) {
   const age = Number(input.age);
   const sex = Number(input.sex);
   const term = input.term;
@@ -782,14 +782,42 @@ export function quoteSavings(product, input) {
   const renewal = roundHalfUp(raw * (1 - d2));
   const modes = savingsModes(product, id);
   const mode = modes.includes(input.mode) ? input.mode : preferredSavingsMode(product, modes);
+  return { id, raw, first, renewal, d1, d2, rate, modes, mode };
+}
+
+export function quoteSavings(product, input) {
+  const priced = savingsPrice(product, input);
   let rows;
-  if (product.isr) rows = projectInterest(product, input, id, mode, first, renewal);
-  else if (product.hand) rows = projectHand(product, input, id, first, renewal);
-  else rows = projectStandard(product, input, id, mode, first, renewal);
-  const result = finishSavings(product, raw, first, renewal, d1, d2, rate, rows);
-  result.mode = mode;
-  result.modes = modes;
+  if (product.isr) rows = projectInterest(product, input, priced.id, priced.mode, priced.first, priced.renewal);
+  else if (product.hand) rows = projectHand(product, input, priced.id, priced.first, priced.renewal);
+  else rows = projectStandard(product, input, priced.id, priced.mode, priced.first, priced.renewal);
+  const result = finishSavings(product, priced.raw, priced.first, priced.renewal, priced.d1, priced.d2, priced.rate, rows);
+  result.mode = priced.mode;
+  result.modes = priced.modes;
   return result;
+}
+
+export function annualPayable(product, input) {
+  if (product.calc === "fbo") {
+    const age = Number(input.age);
+    const sex = Number(input.sex);
+    const term = Number(input.term);
+    const sum = Number(input.sum);
+    assertAgeTerm(product, age, term);
+    assertSex(product, sex);
+    const limits = product.sumInsured || {};
+    const cap = limits.byAge?.[String(age)] ?? limits.max;
+    if (!(sum >= limits.min && sum <= cap)) throw new Error(`保額要在 ${limits.min}–${cap} 萬`);
+    const id = tableId(term, sex, age);
+    const tables = product.tables;
+    if (tables.gp?.[id] == null || tables.pv?.[id] == null) throw new Error("查無這個年齡的費率");
+    const [d1] = handDiscount(product.handDiscount, term, sum, input.method1 || product.method1, input.method2 || product.method2);
+    const raw = excelRound(sum * tables.gp[id], 1);
+    const modal = Math.floor(raw + 1e-9);
+    return Math.round(modal * (1 - d1));
+  }
+  if (product.calc === "annuity") return Number(input.sum);
+  return savingsPrice(product, input).first;
 }
 
 function excelRound(value, digits) {

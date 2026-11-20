@@ -1,4 +1,5 @@
 import { preferredSavingsMode, quoteProduct, savingsModes } from "./calc.js";
+import { solveFace } from "./compare-solve.js";
 import { fillVersion, loadJson, money, percent, watchTables } from "./ui.js";
 
 const catalog = await loadJson("data/products.json");
@@ -89,6 +90,38 @@ function sumFor(product, age) {
   return sum;
 }
 
+function basis() {
+  return document.querySelector("input[name='basis']:checked")?.value || "sum";
+}
+
+function syncBasis() {
+  document.querySelector("#premiumBox").hidden = basis() !== "premium";
+}
+
+function budgetOf() {
+  const text = String(document.querySelector("#premium").value).trim().replace(/,/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(text) || Number(text) <= 0) return { error: "請輸入年繳保費" };
+  return { premium: Number(text), currency: document.querySelector("#currency").value };
+}
+
+function faceText(sum) {
+  const text = Number(sum).toLocaleString("zh-Hant", { maximumFractionDigits: 2 });
+  return `${text} 萬`;
+}
+
+function shown(entry, read) {
+  if (entry.missing) return missingLabel;
+  if (entry.note) return entry.note;
+  return read(entry);
+}
+
+function surrender(entry, year) {
+  if (entry.item?.calc === "annuity") return "無資料";
+  const row = entry.result?.rows?.[year - 1];
+  if (!row || !Number.isFinite(Number(row.X))) return "無資料";
+  return money(row.X, entry.item.currency);
+}
+
 let generation = 0;
 
 async function compare() {
@@ -100,6 +133,13 @@ async function compare() {
   if (who.error) {
     error.hidden = false;
     error.textContent = who.error;
+    return;
+  }
+  const modeName = basis();
+  const budget = modeName === "premium" ? budgetOf() : null;
+  if (budget?.error) {
+    error.hidden = false;
+    error.textContent = budget.error;
     return;
   }
   const picked = [0, 1, 2].map((index) => document.querySelector(`#p${index}`).value).filter(Boolean);
@@ -119,20 +159,42 @@ async function compare() {
         results.push({ item, missing: true });
         continue;
       }
+      const scenario = item.verificationSamples?.[0]?.scenario ?? 2;
+      const mode = preferredSavingsMode(item, savingsModes(item, id));
+      let sum = sumFor(item, who.age);
+      if (modeName === "premium") {
+        if ((item.currency || "TWD") !== budget.currency) {
+          results.push({ item, note: "幣別不同" });
+          continue;
+        }
+        const solved = solveFace(item, {
+          age: who.age,
+          sex: who.sex,
+          term,
+          scenario,
+          declaredRate: item.declDefault,
+          mode,
+        }, budget.premium);
+        if (solved.note) {
+          results.push({ item, note: solved.note });
+          continue;
+        }
+        sum = solved.sum;
+      }
       const result = quoteProduct(item, {
         age: who.age,
         sex: who.sex,
         term,
-        sum: sumFor(item, who.age),
-        scenario: item.verificationSamples?.[0]?.scenario ?? 2,
+        sum,
+        scenario,
         declaredRate: item.declDefault,
-        mode: preferredSavingsMode(item, savingsModes(item, id)),
+        mode,
       });
-      const row = result.rows[Math.min(9, result.rows.length - 1)];
-      results.push({ item, result, row });
+      results.push({ item, result, sum });
     } catch (reason) {
       const text = String(reason.message || "");
       if (/年齡|性別|費率|年期/.test(text)) results.push({ item: preview, missing: true });
+      else if (/最低|上限|不足/.test(text)) results.push({ item: preview, note: text });
       else results.push({ item: preview, missing: true, detail: text });
     }
   }
@@ -143,22 +205,41 @@ async function compare() {
     head.textContent = entry ? entry.item.code : "";
     head.title = entry ? entry.item.name : "";
   });
-  const cell = (entry, read) => `<td>${entry?.missing ? missingLabel : read(entry)}</td>`;
-  const valueLabel = results.every((item) => item.item?.calc === "annuity") ? "第10年累計年金" : results.some((item) => item.item?.calc === "annuity") ? "第10年價值" : "第10年解約";
+  const cell = (entry, read) => `<td>${shown(entry, read)}</td>`;
   const pad = "<td></td>".repeat(Math.max(0, 3 - results.length));
-  document.querySelector("#body").innerHTML = `
-    <tr><td>首期</td>${results.map((item) => cell(item, (entry) => money(entry.result.payable, entry.item.currency))).join("")}${pad}</tr>
-    <tr><td>${valueLabel}</td>${results.map((item) => cell(item, (entry) => money(entry.row.X, entry.item.currency))).join("")}${pad}</tr>
-    <tr><td>含領回報酬率</td>${results.map((item) => cell(item, (entry) => percent(entry.result.irr10))).join("")}${pad}</tr>
-    <tr><td>壽險倍數</td>${results.map((item) => cell(item, (entry) => entry.row?.cum ? (entry.row.W / entry.row.cum).toFixed(2) : "—")).join("")}${pad}</tr>`;
+  const row = (label, read) => `<tr><td>${label}</td>${results.map((item) => cell(item, read)).join("")}${pad}</tr>`;
+  document.querySelector("#body").innerHTML = [
+    row("保額", (entry) => faceText(entry.sum)),
+    row("首期", (entry) => money(entry.result.payable, entry.item.currency)),
+    row("第5年解約", (entry) => surrender(entry, 5)),
+    row("第10年解約", (entry) => surrender(entry, 10)),
+    row("第15年解約", (entry) => surrender(entry, 15)),
+    row("含領回報酬率", (entry) => entry.result.rows.length >= 10 ? percent(entry.result.irr10) : "無資料"),
+    row("壽險倍數", (entry) => {
+      const year = entry.result.rows[9];
+      return year?.cum ? (year.W / year.cum).toFixed(2) : "無資料";
+    }),
+  ].join("");
   document.querySelector("#out").hidden = false;
   watchTables();
 }
 
-document.querySelector("#find").addEventListener("input", fillSlots);
-document.querySelector("#run").addEventListener("click", () => { compare().catch((reason) => { document.querySelector("#error").hidden = false; document.querySelector("#error").textContent = reason.message; }); });
-for (const id of ["#age", "#sex"]) {
-  document.querySelector(id).addEventListener("change", () => { if (!document.querySelector("#out").hidden) compare(); });
-  document.querySelector(id).addEventListener("input", () => { if (!document.querySelector("#out").hidden) compare(); });
+function rerun() {
+  compare().catch((reason) => {
+    document.querySelector("#error").hidden = false;
+    document.querySelector("#error").textContent = reason.message;
+  });
 }
+
+document.querySelector("#find").addEventListener("input", fillSlots);
+document.querySelector("#run").addEventListener("click", rerun);
+for (const id of ["#age", "#sex", "#premium", "#currency"]) {
+  document.querySelector(id).addEventListener("change", () => { if (!document.querySelector("#out").hidden) rerun(); });
+}
+document.querySelector("#age").addEventListener("input", () => { if (!document.querySelector("#out").hidden) rerun(); });
+document.querySelector("#basis").addEventListener("change", () => {
+  syncBasis();
+  if (!document.querySelector("#out").hidden) rerun();
+});
+syncBasis();
 watchTables();

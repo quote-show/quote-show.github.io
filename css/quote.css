@@ -234,7 +234,7 @@ a.gold {
 
 .ghost { background: var(--card); color: var(--gold-ink); }
 
-.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 
 .choices label {
   display: flex;

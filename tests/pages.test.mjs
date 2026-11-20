@@ -48,6 +48,13 @@ const compareScript = fs.readFileSync("js/app-compare.js", "utf8");
 assert.match(compareScript, /toLowerCase\(\)\.includes/);
 assert.match(compareScript, /無此年齡\/性別資料/);
 assert.match(compareScript, /item\.name\.toLowerCase\(\)\.includes/);
+assert.match(compareScript, /第5年解約/);
+assert.match(compareScript, /第15年解約/);
+assert.match(compareScript, /無資料/);
+assert.match(compare, /同保額比較/);
+assert.match(compare, /同保費比較/);
+assert.match(compare, /id="premium"/);
+assert.match(compare, /id="currency"/);
 
 const script = fs.readFileSync("js/app-protection.js", "utf8");
 assert.match(script, /quoteProduct/);

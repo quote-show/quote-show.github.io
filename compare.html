@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/quote.css?v=5">
+  <link rel="stylesheet" href="css/quote.css?v=6">
 </head>
 <body>
   <header class="top">
@@ -48,13 +48,33 @@
               </select>
             </div>
           </div>
+          <div class="choices" id="basis">
+            <label><input type="radio" name="basis" value="sum" checked> 同保額比較</label>
+            <label><input type="radio" name="basis" value="premium"> 同保費比較</label>
+          </div>
+          <div id="premiumBox" hidden>
+            <div class="two">
+              <div>
+                <label for="premium">年繳保費</label>
+                <input id="premium" type="text" inputmode="decimal" value="6000" autocomplete="off">
+              </div>
+              <div>
+                <label for="currency">幣別</label>
+                <select id="currency">
+                  <option value="USD">USD</option>
+                  <option value="TWD">台幣</option>
+                  <option value="AUD">AUD</option>
+                </select>
+              </div>
+            </div>
+          </div>
           <div class="grid" id="slots"></div>
-          <p class="demo">依這個保險年齡與性別重算。沒有該年齡或性別費率的商品會標示，不會改用別的條件計算。紅利與宣告利率非保證。</p>
+          <p class="demo">同保額用各商品自己的試算保額。同保費用這筆年繳保費，依該年齡與性別的費率反推買得到的保額。保費買不到最低保額、超過上限，或幣別不同，會標示而不另算。沒有該年解約金就標無資料。紅利與宣告利率非保證。</p>
           <p><button class="gold" id="run" type="button">比較</button></p>
           <p class="error" id="error" hidden></p>
         </section>
         <section class="panel" id="out" hidden>
-          <header><h2>摘要</h2><span class="tag">〔第 10 年或最後一年〕</span></header>
+          <header><h2>摘要</h2><span class="tag">〔第 5、10、15 年〕</span></header>
           <div class="scroll"><table>
             <thead><tr><th></th><th id="h0"></th><th id="h1"></th><th id="h2"></th></tr></thead>
             <tbody id="body"></tbody>
@@ -67,6 +87,6 @@
       </footer>
     </section>
   </main>
-  <script type="module" src="js/app-compare.js?v=6"></script>
+  <script type="module" src="js/app-compare.js?v=7"></script>
 </body>
 </html>
