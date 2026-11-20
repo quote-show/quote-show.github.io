@@ -75,49 +75,31 @@ function termText(entry) {
 }
 const missingLabel = "無此年齡/性別資料";
 
-function matches(item, query) {
-  const text = query.trim().toLowerCase();
-  if (!text) return true;
-  return item.code.toLowerCase().includes(text) || item.name.toLowerCase().includes(text);
+function selects() {
+  return [...document.querySelectorAll("#slots select")];
 }
 
-function slotValues(next) {
-  if (next) return next;
-  const selects = [...document.querySelectorAll("#slots select")];
-  if (!selects.length) return [savings[0]?.code || "", savings[1]?.code || "", "", ""];
-  return selects.map((select, index) => {
-    if (select.value) return select.value;
-    if (select.options.length) return "";
-    if (index === 0) return savings[0]?.code || "";
-    if (index === 1) return savings[1]?.code || "";
-    return "";
-  });
+function slotValues() {
+  return selects().map((select) => select.value);
 }
 
-function fillSlots(next) {
-  const query = document.querySelector("#find").value;
-  const values = slotValues(next);
-  const matched = savings.filter((item) => matches(item, query));
-  [...document.querySelectorAll("#slots select")].forEach((select, index) => {
-    const selected = values[index] || "";
-    const chosen = savings.find((item) => item.code === selected);
-    const list = chosen && !matched.some((item) => item.code === chosen.code) ? [chosen, ...matched] : matched;
-    const empty = index === 0 ? "" : `<option value="">不比較</option>`;
-    const body = list.map((item) => `<option value="${item.code}">${item.code} ${item.name}</option>`).join("");
-    const none = list.length ? "" : `<option value="" disabled>沒有符合的商品</option>`;
-    select.innerHTML = empty + body + none;
-    if ([...select.options].some((option) => option.value === selected)) select.value = selected;
-  });
-  renderList();
-}
-
-function renderList() {
-  const query = document.querySelector("#find").value;
+function markPicked() {
   const picked = new Set(slotValues().filter(Boolean));
-  const rows = savings.filter((item) => matches(item, query));
-  document.querySelector("#count").textContent = `${rows.length} / ${savings.length} 檔`;
-  const list = document.querySelector("#all");
-  list.innerHTML = rows.map((item) => `<button type="button" class="entry" data-code="${item.code}" aria-pressed="${picked.has(item.code)}"><strong>${item.code}</strong> ${item.name}<p>${currencyName(item.code)} · ${termList(item.code)}</p></button>`).join("") || `<p class="demo">沒有符合的商品</p>`;
+  for (const button of document.querySelectorAll("#all button")) {
+    button.setAttribute("aria-pressed", picked.has(button.dataset.code) ? "true" : "false");
+  }
+}
+
+function applyQuery() {
+  const text = document.querySelector("#find").value.trim().toLowerCase();
+  let shown = 0;
+  for (const button of document.querySelectorAll("#all button")) {
+    const ok = !text || button.dataset.code.toLowerCase().includes(text) || button.dataset.name.toLowerCase().includes(text);
+    button.hidden = !ok;
+    if (ok) shown += 1;
+  }
+  document.querySelector("#none").hidden = shown > 0;
+  document.querySelector("#count").textContent = `${shown} / ${savings.length} 檔`;
 }
 
 document.querySelector("#slots").innerHTML = Array.from({ length: slotCount }, (_, index) => `
@@ -125,17 +107,46 @@ document.querySelector("#slots").innerHTML = Array.from({ length: slotCount }, (
     <label for="p${index}">第 ${index + 1} 檔</label>
     <select id="p${index}"></select>
   </div>`).join("");
-fillSlots();
+const optionHtml = savings.map((item) => `<option value="${item.code}">${item.code} ${item.name}</option>`).join("");
+selects().forEach((select, index) => {
+  select.innerHTML = `${index === 0 ? "" : `<option value="">不比較</option>`}${optionHtml}`;
+  if (index === 0) select.value = savings[0]?.code || "";
+  if (index === 1) select.value = savings[1]?.code || "";
+  select.addEventListener("change", markPicked);
+});
 
-document.querySelector("#all").addEventListener("click", (event) => {
+const catalogList = document.querySelector("#all");
+for (const item of savings) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "entry";
+  button.dataset.code = item.code;
+  button.dataset.name = item.name;
+  const title = document.createElement("strong");
+  title.textContent = item.code;
+  const meta = document.createElement("p");
+  meta.textContent = `${currencyName(item.code)} · ${termList(item.code)}`;
+  button.append(title, ` ${item.name}`, meta);
+  catalogList.append(button);
+}
+const none = document.createElement("p");
+none.id = "none";
+none.className = "demo";
+none.hidden = true;
+none.textContent = "沒有符合的商品";
+catalogList.append(none);
+markPicked();
+
+catalogList.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-code]");
   if (!button) return;
   const code = button.dataset.code;
-  const values = slotValues();
+  const fields = selects();
+  const values = fields.map((select) => select.value);
   if (values.includes(code)) {
     const index = values.indexOf(code);
-    if (index > 0) values[index] = "";
-    fillSlots(values);
+    if (index > 0) fields[index].value = "";
+    markPicked();
     return;
   }
   const empty = values.findIndex((value) => !value);
@@ -146,8 +157,8 @@ document.querySelector("#all").addEventListener("click", (event) => {
     return;
   }
   error.hidden = true;
-  values[empty] = code;
-  fillSlots(values);
+  fields[empty].value = code;
+  markPicked();
 });
 
 function person() {
@@ -292,6 +303,8 @@ async function compare() {
     }
   }
   if (token !== generation) return;
+  const place = window.scrollY;
+  const listTop = document.querySelector("#all").scrollTop;
   const heads = document.querySelector("#heads");
   heads.replaceChildren();
   const headRow = document.createElement("tr");
@@ -331,6 +344,8 @@ async function compare() {
   }).join("");
   document.querySelector("#out").hidden = false;
   watchTables();
+  document.querySelector("#all").scrollTop = listTop;
+  if (window.scrollY !== place) window.scrollTo(0, place);
 }
 
 function rerun() {
@@ -340,12 +355,11 @@ function rerun() {
   });
 }
 
-document.querySelector("#find").addEventListener("input", fillSlots);
+document.querySelector("#find").addEventListener("input", applyQuery);
 document.querySelector("#run").addEventListener("click", rerun);
 for (const id of ["#age", "#sex", "#premium", "#currency", "#term"]) {
   document.querySelector(id).addEventListener("change", () => { if (!document.querySelector("#out").hidden) rerun(); });
 }
-document.querySelector("#age").addEventListener("input", () => { if (!document.querySelector("#out").hidden) rerun(); });
 document.querySelector("#basis").addEventListener("change", () => {
   syncBasis();
   if (!document.querySelector("#out").hidden) rerun();

@@ -190,13 +190,15 @@ button.entry { width: 100%; text-align: left; cursor: pointer; }
 button.entry[aria-pressed="true"] { border-color: var(--gold); background: #f3e6cf; }
 
 .catalog {
-  max-height: 280px;
+  height: 280px;
   overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin: 8px 0;
 }
+
+.catalog button[hidden] { display: none; }
 
 .demo {
   color: var(--gold-ink);

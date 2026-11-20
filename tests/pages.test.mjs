@@ -47,7 +47,7 @@ assert.doesNotMatch(compare, /<img/);
 const compareScript = fs.readFileSync("js/app-compare.js", "utf8");
 assert.match(compareScript, /toLowerCase\(\)\.includes/);
 assert.match(compareScript, /無此年齡\/性別資料/);
-assert.match(compareScript, /item\.name\.toLowerCase\(\)\.includes/);
+assert.match(compareScript, /dataset\.name\.toLowerCase\(\)\.includes/);
 assert.match(compareScript, /第5年解約/);
 assert.match(compareScript, /第15年解約/);
 assert.match(compareScript, /無資料/);
